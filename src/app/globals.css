@@ -1,26 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Fondo oscuro estilo "Garage" y texto claro */
+  --background: #09090b; /* zinc-950 */
+  --foreground: #fafafa; /* zinc-50 */
+  
+  /* Color principal vibrante (ej. naranja mecanico) */
+  --primary: #f97316; /* orange-500 */
+  --primary-foreground: #ffffff;
+  
+  /* Superficies secundarias (tarjetas) */
+  --card: #18181b; /* zinc-900 */
+  --border: #27272a; /* zinc-800 */
+  
+  /* Alertas Semáforo */
+  --alert-green: #22c55e;
+  --alert-yellow: #eab308;
+  --alert-red: #ef4444;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-success: var(--alert-green);
+  --color-warning: var(--alert-yellow);
+  --color-danger: var(--alert-red);
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }

@@ -1,0 +1,209 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { getUserProfile, UserProfile, uploadUserImage, updateUserProfile } from "@/lib/services";
+import { ChevronLeft, Camera, Loader2 } from "lucide-react";
+import Link from "next/link";
+
+export default function EditGaragePage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  // Forms
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [mileage, setMileage] = useState("");
+  const [oilInterval, setOilInterval] = useState("");
+  
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
+    const loadData = async () => {
+      const data = await getUserProfile(user.uid);
+      if (data) {
+        setProfile(data);
+        setBrand(data.bikeInfo?.brand || "");
+        setModel(data.bikeInfo?.model || "");
+        setYear(data.bikeInfo?.year || "");
+        setMileage(data.bikeInfo?.mileage?.toString() || "0");
+        setOilInterval(data.serviceIntervals?.oil?.toString() || "5000");
+        setBannerPreview(data.bannerURL || null);
+      }
+      setLoading(false);
+    };
+
+    loadData();
+  }, [user, router]);
+
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setBannerFile(file);
+      setBannerPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !profile) return;
+    setSaving(true);
+
+    try {
+      let finalBannerURL = profile.bannerURL;
+      
+      if (bannerFile) {
+        finalBannerURL = await uploadUserImage(user.uid, bannerFile, 'banner');
+      }
+
+      await updateUserProfile(user.uid, {
+        bannerURL: finalBannerURL,
+        bikeInfo: {
+          brand,
+          model,
+          year,
+          mileage: parseInt(mileage) || 0,
+        },
+        serviceIntervals: {
+          oil: parseInt(oilInterval) || 5000
+        }
+      });
+
+      router.push("/garage");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert("Hubo un error al guardar. Intenta de nuevo.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="flex h-screen items-center justify-center">Cargando...</div>;
+
+  return (
+    <div className="min-h-screen bg-background pb-10">
+      <header className="sticky top-0 z-10 flex items-center bg-background/90 px-4 py-4 backdrop-blur-md">
+        <Link href="/garage" className="mr-4 text-zinc-400 hover:text-white">
+          <ChevronLeft size={28} />
+        </Link>
+        <h1 className="text-xl font-bold text-foreground">Editar Ficha Técnica</h1>
+      </header>
+
+      <form onSubmit={handleSave} className="px-4 mt-4 space-y-8">
+        
+        {/* Banner Upload */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-zinc-400">Foto de Portada (La Moto)</label>
+          <div className="relative h-48 w-full overflow-hidden rounded-xl border-2 border-dashed border-border bg-card">
+            {bannerPreview ? (
+              <img src={bannerPreview} alt="Banner" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center text-zinc-500">
+                <Camera size={32} className="mb-2" />
+                <span className="text-sm">Toca para subir foto</span>
+              </div>
+            )}
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleBannerChange}
+              className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+            />
+          </div>
+        </div>
+
+        {/* Bike Details */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-primary border-b border-border pb-2">Datos de la Moto</h2>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-zinc-400">Marca</label>
+              <input 
+                type="text" 
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+                placeholder="Ej. Honda"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-zinc-400">Modelo</label>
+              <input 
+                type="text" 
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+                placeholder="Ej. CB500X"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-zinc-400">Año</label>
+              <input 
+                type="number" 
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+                placeholder="Ej. 2023"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-zinc-400">Kilometraje Total (KM)</label>
+              <input 
+                type="number" 
+                value={mileage}
+                onChange={(e) => setMileage(e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+                placeholder="Ej. 15000"
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Configurations */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-primary border-b border-border pb-2">Configuración de Alertas</h2>
+          
+          <div className="space-y-1">
+            <label className="text-xs text-zinc-400">Intervalo de Cambio de Aceite (KM)</label>
+            <p className="text-[10px] text-zinc-500 mb-2">Según el manual de tu moto, cada cuántos KM debés cambiar el aceite.</p>
+            <input 
+              type="number" 
+              value={oilInterval}
+              onChange={(e) => setOilInterval(e.target.value)}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+              placeholder="Ej. 3000 o 5000"
+              required
+            />
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={saving}
+          className="flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 focus:outline-none active:scale-95 transition-all disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="animate-spin" size={20} /> : "Guardar Cambios"}
+        </button>
+      </form>
+    </div>
+  );
+}

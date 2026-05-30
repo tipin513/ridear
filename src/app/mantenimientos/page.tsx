@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { subscribeToMaintenanceRecords, deleteMaintenanceRecord, MaintenanceRecord, subscribeToUserProfile, UserProfile, updateMaintenanceRecord } from "@/lib/services";
+import { subscribeToMaintenanceRecords, deleteMaintenanceRecord, MaintenanceRecord, subscribeToUserProfile, UserProfile, updateMaintenanceRecord, updateBike } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Trash2, X, Sparkles, Edit, Calendar, DollarSign, Wrench, Shield, Check } from "lucide-react";
 import Link from "next/link";
@@ -68,6 +68,37 @@ export default function MaintenancesPage() {
     };
   }, [user, authLoading, router]);
 
+  const syncBikeMileageAndLube = async (updatedRecords: MaintenanceRecord[]) => {
+    if (!user || !profile?.currentBikeId) return;
+    try {
+      const bikeRecords = updatedRecords.filter(r => r.bikeId === profile.currentBikeId);
+      
+      // 1. Get max mileage across all records for this bike
+      const maxMileage = bikeRecords.reduce((max, r) => r.mileage > max ? r.mileage : max, 0);
+      
+      // 2. Get latest transmission lube mileage for this bike
+      const transmissionRecords = bikeRecords.filter(r => r.category === "Transmisión");
+      const latestTransLubeMileage = transmissionRecords.reduce((max, r) => r.mileage > max ? r.mileage : max, 0);
+      
+      const updates: any = {};
+      if (maxMileage > 0) {
+        updates.mileage = maxMileage;
+      }
+      if (latestTransLubeMileage > 0) {
+        updates.lastChainLubeMileage = latestTransLubeMileage;
+      } else if (transmissionRecords.length === 0) {
+        // If all transmission records were deleted, reset it to 0
+        updates.lastChainLubeMileage = 0;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        await updateBike(user.uid, profile.currentBikeId, updates);
+      }
+    } catch (err) {
+      console.error("Error syncing bike mileage/lube:", err);
+    }
+  };
+
   const handleDelete = async (recordId: string) => {
     if (!user) return;
     const confirmDelete = window.confirm("¿Estás seguro de que querés eliminar este registro de mantenimiento?");
@@ -78,6 +109,10 @@ export default function MaintenancesPage() {
       if (selectedRecordForDetails?.id === recordId) {
         setSelectedRecordForDetails(null);
       }
+      
+      // Recalculate bike stats with the remaining records
+      const remainingRecords = records.filter(r => r.id !== recordId);
+      await syncBikeMileageAndLube(remainingRecords);
     } catch (error) {
       console.error("Error al eliminar mantenimiento:", error);
       alert("No se pudo eliminar el registro. Intentalo de nuevo.");
@@ -125,6 +160,10 @@ export default function MaintenancesPage() {
       // Update local view inside the modal
       setSelectedRecordForDetails(prev => prev ? { ...prev, ...updates } : null);
       setIsEditing(false);
+
+      // Recalculate bike stats with edited records list
+      const updatedList = records.map(r => r.id === selectedRecordForDetails.id ? { ...r, ...updates } : r);
+      await syncBikeMileageAndLube(updatedList);
     } catch (err) {
       console.error("Error updating record:", err);
       alert("Hubo un error al guardar los cambios.");

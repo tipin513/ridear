@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getUserProfile, UserProfile, uploadUserImage, getBike, getBikes, updateBike, Bike, deleteBike, updateUserProfile } from "@/lib/services";
+import { getUserProfile, UserProfile, uploadUserImage, getBike, subscribeToBikes, updateBike, Bike, deleteBike, updateUserProfile } from "@/lib/services";
 import { ChevronLeft, Camera, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 

@@ -489,7 +489,7 @@ export default function DocumentosPage() {
               </button>
             </div>
             
-            <p className="absolute bottom-16 text-[10px] text-zinc-500 font-medium select-none pointer-events-none">
+            <p className="absolute bottom-20 text-[10px] text-zinc-500 font-medium select-none pointer-events-none">
               Doble toque para zoom · Arrastrá para mover
             </p>
           </div>

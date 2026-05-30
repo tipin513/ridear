@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { addMaintenanceRecord, getUserProfile, getBike, updateBike, MaintenanceCategory } from "@/lib/services";
 import { ChevronLeft, Loader2, ChevronDown } from "lucide-react";
@@ -48,9 +48,10 @@ const TRANSMISSION_PITCHES = [
 
 const TRANSMISSION_RINGS = ["Con O-Rings / X-Rings (Con retenes, dura más, ideal para viajar)", "Sin Retenes (Común / Reforzada tradicional)"];
 
-export default function NewMaintenancePage() {
+function NewMaintenanceForm() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [saving, setSaving] = useState(false);
   
   // Basic Form state
@@ -74,7 +75,34 @@ export default function NewMaintenancePage() {
 
   const [transmissionPitch, setTransmissionPitch] = useState("");
   const [transmissionRingType, setTransmissionRingType] = useState(TRANSMISSION_RINGS[0]);
-  const [isFullTransmissionKit, setIsFullTransmissionKit] = useState(true); // Si es cambio de kit o solo lubricación
+  const [isFullTransmissionKit, setIsFullTransmissionKit] = useState(true);
+
+  // Set initial category from query parameters
+  useEffect(() => {
+    const catParam = searchParams.get("category");
+    if (catParam) {
+      if (catParam === "bujias") {
+        setCategory("Bujías");
+      } else if (catParam === "cubiertas") {
+        setCategory("Cubiertas");
+      } else if (catParam === "frenos") {
+        setCategory("Desgaste");
+        setType("Frenos");
+      } else if (catParam === "liquidofrenos") {
+        setCategory("Fluidos");
+        setType("Líquido de Frenos");
+      } else if (catParam === "refrigerante") {
+        setCategory("Fluidos");
+        setType("Líquido Refrigerante");
+      } else if (catParam === "transmision") {
+        setCategory("Transmisión");
+      } else if (catParam === "general") {
+        setCategory("General");
+      } else if (catParam === "aceite") {
+        setCategory("Aceite");
+      }
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,9 +165,7 @@ export default function NewMaintenancePage() {
           updates.mileage = recordMileage;
         }
 
-        // Smart chain lube logic
         if (category === "Transmisión") {
-          // Si cambian el kit completo O si solo es lubricación, actualizamos el contador
           if (!currentBike.lastChainLubeMileage || recordMileage > currentBike.lastChainLubeMileage) {
             updates.lastChainLubeMileage = recordMileage;
           }
@@ -160,7 +186,7 @@ export default function NewMaintenancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-10">
+    <div className="min-h-screen bg-background pb-10 text-white">
       <header className="sticky top-0 z-10 flex items-center bg-background/90 px-4 py-4 backdrop-blur-md border-b border-border">
         <Link href="/mantenimientos" className="mr-4 text-zinc-400 hover:text-white">
           <ChevronLeft size={28} />
@@ -182,6 +208,7 @@ export default function NewMaintenancePage() {
                   setFrontTire("");
                   setRearTire("");
                   setTransmissionPitch("");
+                  setType("");
                 }}
                 className="w-full rounded-xl border border-white/10 bg-zinc-900 px-4 py-3.5 text-base font-semibold text-white focus:border-primary focus:outline-none appearance-none shadow-sm"
                 required
@@ -190,6 +217,8 @@ export default function NewMaintenancePage() {
                 <option value="Bujías">Bujías</option>
                 <option value="Cubiertas">Cubiertas (Neumáticos)</option>
                 <option value="Transmisión">Kit de Transmisión / Cadena</option>
+                <option value="Desgaste">Frenos / Desgaste</option>
+                <option value="Fluidos">Líquidos / Fluidos</option>
                 <option value="General">Mantenimiento General / Otros</option>
               </select>
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={20} />
@@ -198,7 +227,7 @@ export default function NewMaintenancePage() {
 
           <div className="rounded-2xl border border-border bg-card p-4 space-y-4 shadow-sm">
             {/* --- CAMPOS ESPECIFICOS POR CATEGORIA --- */}
-            {category === "General" && (
+            {(category === "General" || category === "Desgaste" || category === "Fluidos") && (
               <div className="space-y-1">
                 <label className="text-xs text-zinc-400">Tipo de Trabajo</label>
                 <input 
@@ -206,7 +235,13 @@ export default function NewMaintenancePage() {
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                   className="w-full rounded-lg border border-border bg-black/40 px-3 py-3 text-sm text-foreground focus:border-primary focus:outline-none" 
-                  placeholder="Ej. Regulación de Válvulas, Cambio de Frenos..."
+                  placeholder={
+                    category === "Desgaste" 
+                      ? "Ej. Cambio de Pastillas de Freno, Discos..." 
+                      : category === "Fluidos"
+                        ? "Ej. Purga de Líquido de Frenos, Cambio de Refrigerante..."
+                        : "Ej. Regulación de Válvulas, Cambio de Filtro de Aire..."
+                  }
                   required
                 />
               </div>
@@ -405,5 +440,13 @@ export default function NewMaintenancePage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function NewMaintenancePage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-background text-zinc-400">Cargando formulario...</div>}>
+      <NewMaintenanceForm />
+    </Suspense>
   );
 }

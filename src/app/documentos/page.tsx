@@ -282,8 +282,8 @@ export default function DocumentosPage() {
       </div>
 
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-zinc-950 border border-white/10 sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-950 border border-white/10 sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300 max-h-[90vh] overflow-y-auto pb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Nuevo Documento</h2>
               <button onClick={() => setShowUploadModal(false)} className="text-zinc-500 hover:text-white p-2">
@@ -379,7 +379,7 @@ export default function DocumentosPage() {
 
       {/* Image Viewer Lightbox */}
       {selectedDoc && !selectedDoc.isPdf && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-xl animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-xl animate-in fade-in duration-200">
           <div className="flex justify-between items-center p-4 z-10">
             <button 
               onClick={() => handleDelete(selectedDoc)} 

@@ -11,6 +11,7 @@ interface DocumentCameraProps {
 export default function DocumentCamera({ onCapture, onClose }: DocumentCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cropBoxRef = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,39 +44,45 @@ export default function DocumentCamera({ onCapture, onClose }: DocumentCameraPro
   }, []);
 
   const takePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !cropBoxRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    const cropBox = cropBoxRef.current.getBoundingClientRect();
+    const videoRect = video.getBoundingClientRect();
     
-    // We want to crop the center area. Let's say the overlay is 80% width, and ID aspect ratio is ~ 1.58 (standard ID card)
-    // We will just capture the full frame for simplicity and reliability across different camera resolutions,
-    // but we can try to crop it. Let's do a simple full frame capture for maximum quality, 
-    // as cropping in JS can sometimes lose too much resolution if not handled perfectly.
-    // However, the user asked for "crop automático". We will calculate the crop box.
-
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    // The overlay in CSS is e.g. 85% width.
-    const overlayWidthRatio = 0.85;
-    const overlayHeightRatio = overlayWidthRatio * (videoWidth / videoHeight) * (1 / 1.58); // Approx ID ratio relative to screen
-    // It's safer to just capture the whole image and let the user see it, or crop precisely.
-    // Let's do a precise crop based on the center.
-    const cropWidth = videoWidth * 0.85;
-    const cropHeight = cropWidth / 1.58;
-    
-    const startX = (videoWidth - cropWidth) / 2;
-    const startY = (videoHeight - cropHeight) / 2;
+    // Scale factor of object-cover video
+    const scale = Math.max(videoRect.width / videoWidth, videoRect.height / videoHeight);
 
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    // Intrinsic size of the video when scaled up to cover the screen
+    const renderedVideoWidth = videoWidth * scale;
+    const renderedVideoHeight = videoHeight * scale;
+
+    // Because object-cover centers the video, we find the offsets
+    const offsetX = (renderedVideoWidth - videoRect.width) / 2;
+    const offsetY = (renderedVideoHeight - videoRect.height) / 2;
+
+    // The position of the cropBox relative to the rendered video
+    const cropBoxRenderedX = cropBox.left + offsetX;
+    const cropBoxRenderedY = cropBox.top + offsetY;
+
+    // Convert back to intrinsic video coordinates
+    const sourceX = cropBoxRenderedX / scale;
+    const sourceY = cropBoxRenderedY / scale;
+    const sourceWidth = cropBox.width / scale;
+    const sourceHeight = cropBox.height / scale;
+
+    canvas.width = sourceWidth;
+    canvas.height = sourceHeight;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Draw only the cropped portion
-    ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+    ctx.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
 
     canvas.toBlob((blob) => {
       if (blob) {
@@ -128,6 +135,7 @@ export default function DocumentCamera({ onCapture, onClose }: DocumentCameraPro
             <div className="w-full h-full flex items-center justify-center">
               {/* The Crop Box */}
               <div 
+                ref={cropBoxRef}
                 className="border-2 border-primary rounded-xl relative"
                 style={{ width: '85%', aspectRatio: '1.58' }}
               >

@@ -80,6 +80,9 @@ export interface DigitalDocument {
   customTypeName?: string;
   imageUrl: string;
   storagePath: string;
+  backImageUrl?: string;
+  backStoragePath?: string;
+  isPdf?: boolean;
   expiryDate?: string;
   createdAt: any;
 }
@@ -254,6 +257,10 @@ export const deleteBike = async (uid: string, bikeId: string) => {
         const fileRef = ref(storage, data.storagePath);
         storageDeletePromises.push(deleteObject(fileRef).catch(e => console.error("Error borrar foto:", e)));
       }
+      if (data.backStoragePath) {
+        const backFileRef = ref(storage, data.backStoragePath);
+        storageDeletePromises.push(deleteObject(backFileRef).catch(e => console.error("Error borrar foto dorso:", e)));
+      }
     } else {
       console.log(`[deleteBike] Omitiendo documento 'licencia' (${docSnap.id}) ya que es global.`);
     }
@@ -327,22 +334,37 @@ export const getMaintenanceRecords = async (uid: string): Promise<MaintenanceRec
 };
 
 // Digital Documents (Guantera Digital)
-export const uploadDigitalDocument = async (uid: string, docType: string, file: File, expiryDate?: string, customTypeName?: string, bikeId?: string) => {
-  const fileExtension = file.name.split('.').pop();
-  const timestamp = Date.now();
-  const storagePath = `users/${uid}/documents/${docType}_${timestamp}.${fileExtension}`;
-  const storageRef = ref(storage, storagePath);
+export const uploadDigitalDocument = async (uid: string, docType: string, file: File, backFile?: File | null, expiryDate?: string, customTypeName?: string, bikeId?: string) => {
+  const uploadSingleFile = async (f: File, suffix: string) => {
+    const fileExtension = f.name.split('.').pop();
+    const timestamp = Date.now();
+    const storagePath = `users/${uid}/documents/${docType}_${suffix}_${timestamp}.${fileExtension}`;
+    const storageRef = ref(storage, storagePath);
+    await uploadBytes(storageRef, f);
+    const url = await getDownloadURL(storageRef);
+    return { url, path: storagePath, isPdf: f.type === 'application/pdf' };
+  };
+
+  const frontData = await uploadSingleFile(file, 'front');
+  let backData = null;
   
-  await uploadBytes(storageRef, file);
-  const imageUrl = await getDownloadURL(storageRef);
+  if (backFile) {
+    backData = await uploadSingleFile(backFile, 'back');
+  }
 
   const newDoc: Omit<DigitalDocument, 'id'> = {
     type: docType as DigitalDocument['type'],
-    imageUrl,
-    storagePath,
-    createdAt: timestamp,
+    imageUrl: frontData.url,
+    storagePath: frontData.path,
+    isPdf: frontData.isPdf,
+    createdAt: Date.now(),
   };
   
+  if (backData) {
+    newDoc.backImageUrl = backData.url;
+    newDoc.backStoragePath = backData.path;
+  }
+
   if (bikeId && docType !== 'licencia') newDoc.bikeId = bikeId;
   if (expiryDate) newDoc.expiryDate = expiryDate;
   if (customTypeName && docType === 'otro') newDoc.customTypeName = customTypeName;
@@ -363,7 +385,7 @@ export const subscribeToDigitalDocuments = (uid: string, callback: (docs: Digita
   });
 };
 
-export const deleteDigitalDocument = async (uid: string, documentId: string, storagePath: string) => {
+export const deleteDigitalDocument = async (uid: string, documentId: string, storagePath: string, backStoragePath?: string) => {
   // Delete from Firestore
   const docRef = doc(db, "users", uid, "documents", documentId);
   await deleteDoc(docRef);
@@ -374,6 +396,15 @@ export const deleteDigitalDocument = async (uid: string, documentId: string, sto
     await deleteObject(storageRef);
   } catch (error) {
     console.error("Error al borrar el archivo del storage:", error);
+  }
+  
+  if (backStoragePath) {
+    const backRef = ref(storage, backStoragePath);
+    try {
+      await deleteObject(backRef);
+    } catch (error) {
+      console.error("Error al borrar el dorso del storage:", error);
+    }
   }
 };
 

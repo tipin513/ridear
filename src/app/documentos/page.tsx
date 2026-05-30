@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeToDigitalDocuments, DigitalDocument, uploadDigitalDocument, deleteDigitalDocument, subscribeToUserProfile, UserProfile } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
-import { Camera, Image as ImageIcon, Plus, Trash2, X, FileWarning, CheckCircle2, ShieldAlert, Loader2, Calendar } from "lucide-react";
+import DocumentCamera from "@/components/DocumentCamera";
+import { Camera, Image as ImageIcon, Plus, Trash2, X, FileWarning, CheckCircle2, ShieldAlert, Loader2, Calendar, FileText, FlipHorizontal } from "lucide-react";
 import Link from "next/link";
 
 export default function DocumentosPage() {
@@ -22,11 +23,14 @@ export default function DocumentosPage() {
   const [customType, setCustomType] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   
-  // Image Viewer state
-  const [selectedImage, setSelectedImage] = useState<DigitalDocument | null>(null);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
+  const [showCameraFor, setShowCameraFor] = useState<'front' | 'back' | 'single' | null>(null);
 
-  // File Inputs
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  // Image Viewer state
+  const [selectedDoc, setSelectedDoc] = useState<DigitalDocument | null>(null);
+  const [showingBack, setShowingBack] = useState(false);
+
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,28 +56,55 @@ export default function DocumentosPage() {
     }
   }, [user, authLoading, router]);
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    // Reset files when changing type
+    setFrontFile(null);
+    setBackFile(null);
+  }, [selectedType]);
+
+  const openGallery = (side: 'front' | 'back' | 'single', acceptPdf: boolean) => {
+    if (galleryInputRef.current) {
+      galleryInputRef.current.accept = acceptPdf ? "image/*,application/pdf" : "image/*";
+      galleryInputRef.current.dataset.side = side;
+      galleryInputRef.current.click();
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
+    const side = e.target.dataset.side;
+    if (side === 'front' || side === 'single') setFrontFile(file);
+    else if (side === 'back') setBackFile(file);
+    
+    if (e.target) e.target.value = ''; // reset
+  };
+
+  const handleCameraCapture = (file: File) => {
+    if (showCameraFor === 'front' || showCameraFor === 'single') setFrontFile(file);
+    else if (showCameraFor === 'back') setBackFile(file);
+    setShowCameraFor(null);
+  };
+
+  const executeUpload = async () => {
+    if (!user || !frontFile) return;
 
     try {
       setIsUploading(true);
       const finalExpiryDate = selectedType === 'cedula' ? "" : expiryDate;
-      await uploadDigitalDocument(user.uid, selectedType, file, finalExpiryDate, customType, profile?.currentBikeId);
-      setShowUploadModal(false);
+      await uploadDigitalDocument(user.uid, selectedType, frontFile, backFile, finalExpiryDate, customType, profile?.currentBikeId);
       
-      // Reset form
+      setShowUploadModal(false);
       setSelectedType('licencia');
       setCustomType("");
       setExpiryDate("");
+      setFrontFile(null);
+      setBackFile(null);
     } catch (error) {
       console.error("Error subiendo documento:", error);
       alert("Hubo un error al subir el documento.");
     } finally {
       setIsUploading(false);
-      // Reset inputs
-      if (cameraInputRef.current) cameraInputRef.current.value = "";
-      if (galleryInputRef.current) galleryInputRef.current.value = "";
     }
   };
 
@@ -81,8 +112,8 @@ export default function DocumentosPage() {
     if (!user) return;
     if (confirm("¿Estás seguro que querés eliminar este documento? Esta acción no se puede deshacer.")) {
       try {
-        await deleteDigitalDocument(user.uid, doc.id, doc.storagePath);
-        setSelectedImage(null); // Close viewer if open
+        await deleteDigitalDocument(user.uid, doc.id, doc.storagePath, doc.backStoragePath);
+        setSelectedDoc(null);
       } catch (error) {
         console.error("Error al eliminar documento:", error);
         alert("Error al eliminar el documento.");
@@ -98,7 +129,6 @@ export default function DocumentosPage() {
     );
   }
 
-  // Define document categories for rendering
   const docTypes = [
     { id: 'licencia', name: 'Licencia de Conducir' },
     { id: 'cedula', name: 'Cédula Verde' },
@@ -120,9 +150,49 @@ export default function DocumentosPage() {
     return { status: 'ok', color: 'text-green-500', bg: 'bg-green-500/10', icon: CheckCircle2, text: 'Vigente' };
   };
 
+  const requiresFrontBack = selectedType === 'licencia' || selectedType === 'cedula';
+
+  const renderFilePreview = (file: File | null, side: 'front'|'back'|'single', label: string, acceptPdf: boolean) => {
+    if (file) {
+      const isPdf = file.type === 'application/pdf';
+      return (
+        <div className="relative w-full h-32 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 flex items-center justify-center group">
+          {isPdf ? (
+             <div className="flex flex-col items-center justify-center text-zinc-400">
+               <FileText size={32} className="mb-2 text-primary" />
+               <span className="text-xs">{file.name}</span>
+             </div>
+          ) : (
+            <img src={URL.createObjectURL(file)} alt={label} className="w-full h-full object-cover opacity-70" />
+          )}
+          <button 
+            onClick={() => side === 'front' || side === 'single' ? setFrontFile(null) : setBackFile(null)}
+            className="absolute top-2 right-2 bg-black/50 p-1.5 rounded-full text-white hover:bg-red-500/80 transition-colors"
+          >
+            <X size={14} />
+          </button>
+          <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-[10px] font-bold uppercase text-white">{label}</div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full h-32 rounded-xl border-2 border-dashed border-white/10 bg-zinc-900/50 flex flex-col items-center justify-center gap-2 relative">
+        <div className="absolute top-2 left-2 text-[10px] font-bold uppercase text-zinc-500">{label}</div>
+        <div className="flex gap-2 mt-2">
+          <button onClick={() => setShowCameraFor(side)} className="p-3 bg-zinc-800 rounded-full text-primary hover:bg-zinc-700 transition-colors" title="Tomar foto">
+            <Camera size={20} />
+          </button>
+          <button onClick={() => openGallery(side, acceptPdf)} className="p-3 bg-zinc-800 rounded-full text-primary hover:bg-zinc-700 transition-colors" title="Subir archivo">
+            <ImageIcon size={20} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-lg border-b border-white/5 px-4 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">Mis Documentos</h1>
@@ -167,13 +237,27 @@ export default function DocumentosPage() {
                   className="relative overflow-hidden rounded-2xl border border-white/10 bg-card transition-all active:scale-[0.98]"
                 >
                   <div 
-                    className="h-32 w-full bg-zinc-900 relative cursor-pointer"
-                    onClick={() => setSelectedImage(doc)}
+                    className="h-32 w-full bg-zinc-900 relative cursor-pointer flex items-center justify-center"
+                    onClick={() => {
+                      if (doc.isPdf) {
+                         window.open(doc.imageUrl, '_blank');
+                      } else {
+                         setSelectedDoc(doc);
+                         setShowingBack(false);
+                      }
+                    }}
                   >
-                    <img src={doc.imageUrl} alt={docName} className="h-full w-full object-cover opacity-80" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    {doc.isPdf ? (
+                      <div className="flex flex-col items-center text-zinc-400 z-10">
+                        <FileText size={40} className="text-primary mb-2" />
+                        <span className="text-xs font-medium">Ver PDF</span>
+                      </div>
+                    ) : (
+                      <img src={doc.imageUrl} alt={docName} className="h-full w-full object-cover opacity-80 absolute inset-0" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
                     
-                    <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
+                    <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end pointer-events-none">
                       <div>
                         <h3 className="font-semibold text-white drop-shadow-md">{docName}</h3>
                         {doc.expiryDate && (
@@ -183,6 +267,11 @@ export default function DocumentosPage() {
                           </div>
                         )}
                       </div>
+                      {(doc.backImageUrl || doc.isPdf) && (
+                        <div className="bg-black/50 p-1.5 rounded-full backdrop-blur-md text-white">
+                          {doc.isPdf ? <FileText size={14} /> : <FlipHorizontal size={14} />}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -192,10 +281,9 @@ export default function DocumentosPage() {
         )}
       </div>
 
-      {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-zinc-950 border border-white/10 sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300">
+          <div className="w-full max-w-md bg-zinc-950 border border-white/10 sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">Nuevo Documento</h2>
               <button onClick={() => setShowUploadModal(false)} className="text-zinc-500 hover:text-white p-2">
@@ -247,86 +335,99 @@ export default function DocumentosPage() {
                 </div>
               )}
 
-              <div className="pt-4 grid grid-cols-2 gap-3">
-                {/* Hidden File Inputs */}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="environment" 
-                  ref={cameraInputRef} 
-                  onChange={handleFileSelect} 
-                  className="hidden" 
-                />
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  ref={galleryInputRef} 
-                  onChange={handleFileSelect} 
-                  className="hidden" 
-                />
-
-                <button 
-                  onClick={() => cameraInputRef.current?.click()}
-                  disabled={isUploading || (selectedType === 'otro' && !customType)}
-                  className="flex flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-900 p-4 transition-colors hover:bg-zinc-800 disabled:opacity-50"
-                >
-                  <Camera className="text-primary" size={28} />
-                  <span className="text-xs font-medium">Usar Cámara</span>
-                </button>
-                
-                <button 
-                  onClick={() => galleryInputRef.current?.click()}
-                  disabled={isUploading || (selectedType === 'otro' && !customType)}
-                  className="flex flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-900 p-4 transition-colors hover:bg-zinc-800 disabled:opacity-50"
-                >
-                  <ImageIcon className="text-primary" size={28} />
-                  <span className="text-xs font-medium">Desde Galería</span>
-                </button>
+              <div className="pt-2">
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Archivos</label>
+                {requiresFrontBack ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {renderFilePreview(frontFile, 'front', 'Frente', false)}
+                    {renderFilePreview(backFile, 'back', 'Dorso (Opcional)', false)}
+                  </div>
+                ) : (
+                  renderFilePreview(frontFile, 'single', 'Documento (Imagen o PDF)', true)
+                )}
               </div>
 
-              {isUploading && (
-                <div className="flex items-center justify-center gap-2 text-primary text-sm mt-4">
-                  <Loader2 className="animate-spin" size={16} />
-                  Subiendo documento de forma segura...
-                </div>
-              )}
+              <input 
+                type="file" 
+                ref={galleryInputRef} 
+                onChange={handleFileSelect} 
+                className="hidden" 
+              />
+
+              <button 
+                onClick={executeUpload}
+                disabled={isUploading || !frontFile || (selectedType === 'otro' && !customType)}
+                className="w-full mt-4 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isUploading ? (
+                  <><Loader2 className="animate-spin" size={20} /> Guardando...</>
+                ) : (
+                  "Guardar Documento"
+                )}
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {showCameraFor && (
+        <DocumentCamera 
+          onCapture={handleCameraCapture} 
+          onClose={() => setShowCameraFor(null)} 
+        />
+      )}
+
       {/* Image Viewer Lightbox */}
-      {selectedImage && (
+      {selectedDoc && !selectedDoc.isPdf && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-xl animate-in fade-in duration-200">
           <div className="flex justify-between items-center p-4 z-10">
             <button 
-              onClick={() => handleDelete(selectedImage)} 
+              onClick={() => handleDelete(selectedDoc)} 
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 text-red-500 font-medium text-sm hover:bg-red-500/20"
             >
               <Trash2 size={16} /> Eliminar
             </button>
-            <button onClick={() => setSelectedImage(null)} className="p-2 bg-white/10 rounded-full text-white">
+            <button onClick={() => setSelectedDoc(null)} className="p-2 bg-white/10 rounded-full text-white">
               <X size={24} />
             </button>
           </div>
           
-          <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden relative">
             <img 
-              src={selectedImage.imageUrl} 
+              src={showingBack && selectedDoc.backImageUrl ? selectedDoc.backImageUrl : selectedDoc.imageUrl} 
               alt="Documento ampliado" 
               className="max-w-full max-h-full object-contain rounded-lg"
             />
           </div>
           
           <div className="p-6 bg-gradient-to-t from-black to-transparent">
-            <h2 className="text-xl font-bold text-white">
-              {selectedImage.type === 'otro' ? selectedImage.customTypeName : docTypes.find(t => t.id === selectedImage.type)?.name}
-            </h2>
-            {selectedImage.expiryDate && (
-              <p className="text-zinc-400 text-sm mt-1">
-                Vence el: {new Date(selectedImage.expiryDate + 'T00:00:00').toLocaleDateString()}
-              </p>
-            )}
+            <div className="flex justify-between items-end">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  {selectedDoc.type === 'otro' ? selectedDoc.customTypeName : docTypes.find(t => t.id === selectedDoc.type)?.name}
+                  {selectedDoc.backImageUrl && (
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full border border-primary/20">
+                      {showingBack ? 'Dorso' : 'Frente'}
+                    </span>
+                  )}
+                </h2>
+                {selectedDoc.expiryDate && (
+                  <p className="text-zinc-400 text-sm mt-1">
+                    Vence el: {new Date(selectedDoc.expiryDate + 'T00:00:00').toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+              
+              {selectedDoc.backImageUrl && (
+                <button 
+                  onClick={() => setShowingBack(!showingBack)}
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl transition-colors backdrop-blur-md"
+                >
+                  <FlipHorizontal size={18} />
+                  Ver {showingBack ? 'Frente' : 'Dorso'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

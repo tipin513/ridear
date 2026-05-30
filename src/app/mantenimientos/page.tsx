@@ -119,12 +119,19 @@ export default function MaintenancesPage() {
                         {record.transmissionRingType && <p><span className="text-zinc-500">Tipo:</span> {record.transmissionRingType}</p>}
                       </div>
                     )}
+                    {record.notes && (
+                      <div className="mt-2 pt-2 border-t border-white/5">
+                        <p className="text-xs text-zinc-400 italic">"{record.notes}"</p>
+                      </div>
+                    )}
                   </div>
                   
                 </div>
                 <div className="flex-shrink-0 text-right flex flex-col justify-between items-end">
                   <div>
-                    <p className="text-sm font-bold text-foreground">${record.cost}</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(record.cost)}
+                    </p>
                   </div>
                   {record.id && (
                     <button

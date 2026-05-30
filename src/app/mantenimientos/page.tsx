@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { subscribeToMaintenanceRecords, deleteMaintenanceRecord, MaintenanceRecord, subscribeToUserProfile, UserProfile } from "@/lib/services";
+import { subscribeToMaintenanceRecords, deleteMaintenanceRecord, MaintenanceRecord, subscribeToUserProfile, UserProfile, updateMaintenanceRecord } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
-import { Plus, Trash2, ChevronRight, X, Sparkles } from "lucide-react";
+import { Plus, Trash2, X, Sparkles, Edit, Calendar, DollarSign, Wrench, Shield, Check } from "lucide-react";
 import Link from "next/link";
 
 const categoriesList = [
@@ -26,6 +26,21 @@ export default function MaintenancesPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+
+  // Detail & Edit Modal states
+  const [selectedRecordForDetails, setSelectedRecordForDetails] = useState<MaintenanceRecord | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Edit form states
+  const [editDate, setEditDate] = useState("");
+  const [editMileage, setEditMileage] = useState("");
+  const [editCost, setEditCost] = useState("");
+  const [editType, setEditType] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [editSparkPlugCode, setEditSparkPlugCode] = useState("");
+  const [editFrontTire, setEditFrontTire] = useState("");
+  const [editRearTire, setEditRearTire] = useState("");
+  const [editTransmissionPitch, setEditTransmissionPitch] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -60,9 +75,59 @@ export default function MaintenancesPage() {
 
     try {
       await deleteMaintenanceRecord(user.uid, recordId);
+      if (selectedRecordForDetails?.id === recordId) {
+        setSelectedRecordForDetails(null);
+      }
     } catch (error) {
       console.error("Error al eliminar mantenimiento:", error);
       alert("No se pudo eliminar el registro. Intentalo de nuevo.");
+    }
+  };
+
+  const startEditing = (record: MaintenanceRecord) => {
+    setEditDate(record.date);
+    setEditMileage(record.mileage.toString());
+    setEditCost(record.cost.toString());
+    setEditType(record.type || "");
+    setEditNotes(record.notes || "");
+    setEditSparkPlugCode(record.sparkPlugCode || "");
+    setEditFrontTire(record.frontTire || "");
+    setEditRearTire(record.rearTire || "");
+    setEditTransmissionPitch(record.transmissionPitch || "");
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!user || !selectedRecordForDetails || !selectedRecordForDetails.id) return;
+    
+    try {
+      const updates: Partial<MaintenanceRecord> = {
+        date: editDate,
+        mileage: parseInt(editMileage) || 0,
+        cost: parseInt(editCost) || 0,
+        type: editType,
+        notes: editNotes,
+      };
+      
+      if (selectedRecordForDetails.category === "Bujías") {
+        updates.sparkPlugCode = editSparkPlugCode;
+      }
+      if (selectedRecordForDetails.category === "Cubiertas") {
+        updates.frontTire = editFrontTire;
+        updates.rearTire = editRearTire;
+      }
+      if (selectedRecordForDetails.category === "Transmisión") {
+        updates.transmissionPitch = editTransmissionPitch;
+      }
+      
+      await updateMaintenanceRecord(user.uid, selectedRecordForDetails.id, updates);
+      
+      // Update local view inside the modal
+      setSelectedRecordForDetails(prev => prev ? { ...prev, ...updates } : null);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Error updating record:", err);
+      alert("Hubo un error al guardar los cambios.");
     }
   };
 
@@ -156,7 +221,6 @@ export default function MaintenancesPage() {
                       alt={cat.name} 
                       className={`w-full h-full object-contain transition-transform duration-200 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}
                       onError={(e) => {
-                        // Fallback in case user hasn't uploaded images to public folder yet
                         (e.target as HTMLElement).style.display = 'none';
                       }}
                     />
@@ -183,9 +247,9 @@ export default function MaintenancesPage() {
           
           <Link
             href={`/mantenimientos/nuevo${selectedCategoryFilter ? `?category=${selectedCategoryFilter}` : ""}`}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-primary text-black rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/95 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-primary text-black rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/95 active:scale-95 transition-all w-28 justify-center text-center"
           >
-            <Plus size={14} /> Registrar {activeCategoryObj?.name || ""}
+            <Plus size={14} /> Registrar
           </Link>
         </div>
 
@@ -211,7 +275,8 @@ export default function MaintenancesPage() {
             {filteredRecords.map((record) => (
               <div 
                 key={record.id} 
-                className="rounded-2xl border border-white/5 bg-zinc-900/20 p-4 flex gap-4 hover:border-white/10 transition-colors"
+                onClick={() => setSelectedRecordForDetails(record)}
+                className="rounded-2xl border border-white/5 bg-zinc-900/20 p-4 flex gap-4 hover:border-white/10 transition-colors cursor-pointer active:scale-[0.99]"
               >
                 {/* 3D App Icon Badge */}
                 <div className="flex-shrink-0 h-14 w-14 rounded-2xl bg-zinc-950/60 border border-white/5 flex items-center justify-center p-1.5 overflow-hidden shadow-inner">
@@ -252,7 +317,7 @@ export default function MaintenancesPage() {
                     )}
                     {record.notes && (
                       <div className="mt-2.5 pt-2.5 border-t border-white/5">
-                        <p className="text-xs text-zinc-400 italic">"{record.notes}"</p>
+                        <p className="text-xs text-zinc-400 italic line-clamp-1">"{record.notes}"</p>
                       </div>
                     )}
                   </div>
@@ -264,7 +329,10 @@ export default function MaintenancesPage() {
                   </span>
                   {record.id && (
                     <button
-                      onClick={() => handleDelete(record.id!)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Evita abrir detalles
+                        handleDelete(record.id!);
+                      }}
                       className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer mt-2"
                       title="Eliminar registro"
                     >
@@ -277,6 +345,250 @@ export default function MaintenancesPage() {
           </div>
         )}
       </div>
+
+      {/* Detail / Edit Drawer Modal Overlay */}
+      {selectedRecordForDetails && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-950 border border-white/10 sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300 max-h-[90vh] overflow-y-auto pb-8 relative text-white">
+            
+            {/* Header */}
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-3">
+                <div className="h-16 w-16 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center p-2 shadow-inner flex-shrink-0">
+                  <img 
+                    src={getRecordIcon(selectedRecordForDetails)} 
+                    alt="Category Icon" 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-primary uppercase tracking-wider">{selectedRecordForDetails.category}</h3>
+                  <h2 className="text-xl font-extrabold text-white truncate max-w-[220px]">
+                    {isEditing ? "Editar Registro" : selectedRecordForDetails.type}
+                  </h2>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => {
+                  setSelectedRecordForDetails(null);
+                  setIsEditing(false);
+                }} 
+                className="text-zinc-500 hover:text-white p-2 rounded-full hover:bg-white/5 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-zinc-400">Título / Tipo de Trabajo</label>
+                  <input 
+                    type="text" 
+                    value={editType} 
+                    onChange={(e) => setEditType(e.target.value)} 
+                    className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-zinc-400">Fecha</label>
+                    <input 
+                      type="date" 
+                      value={editDate} 
+                      onChange={(e) => setEditDate(e.target.value)} 
+                      className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none [color-scheme:dark]" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-zinc-400">Kilometraje (km)</label>
+                    <input 
+                      type="number" 
+                      value={editMileage} 
+                      onChange={(e) => setEditMileage(e.target.value)} 
+                      className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-zinc-400">Costo (ARS)</label>
+                  <input 
+                    type="number" 
+                    value={editCost} 
+                    onChange={(e) => setEditCost(e.target.value)} 
+                    className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                  />
+                </div>
+
+                {/* Specific field edits */}
+                {selectedRecordForDetails.category === "Bujías" && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-zinc-400">Código de Bujía</label>
+                    <input 
+                      type="text" 
+                      value={editSparkPlugCode} 
+                      onChange={(e) => setEditSparkPlugCode(e.target.value)} 
+                      className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                    />
+                  </div>
+                )}
+                {selectedRecordForDetails.category === "Cubiertas" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-zinc-400">Medida Delantera</label>
+                      <input 
+                        type="text" 
+                        value={editFrontTire} 
+                        onChange={(e) => setEditFrontTire(e.target.value)} 
+                        className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-zinc-400">Medida Trasera</label>
+                      <input 
+                        type="text" 
+                        value={editRearTire} 
+                        onChange={(e) => setEditRearTire(e.target.value)} 
+                        className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                      />
+                    </div>
+                  </div>
+                )}
+                {selectedRecordForDetails.category === "Transmisión" && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-zinc-400">Paso de Cadena</label>
+                    <input 
+                      type="text" 
+                      value={editTransmissionPitch} 
+                      onChange={(e) => setEditTransmissionPitch(e.target.value)} 
+                      className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-zinc-400">Notas / Observaciones</label>
+                  <textarea 
+                    value={editNotes} 
+                    onChange={(e) => setEditNotes(e.target.value)} 
+                    rows={3}
+                    className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none resize-none" 
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    onClick={() => setIsEditing(false)} 
+                    className="flex-1 py-3.5 bg-zinc-800 text-white font-bold rounded-xl active:scale-95 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleSaveEdit} 
+                    className="flex-1 py-3.5 bg-primary text-black font-extrabold rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Check size={18} /> Guardar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                
+                {/* Visual Stats Row */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-zinc-900/60 border border-white/5 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <Calendar size={18} className="text-zinc-500 mb-1" />
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase">Fecha</span>
+                    <span className="text-xs font-bold text-white mt-0.5">{new Date(selectedRecordForDetails.date + 'T00:00:00').toLocaleDateString()}</span>
+                  </div>
+                  <div className="bg-zinc-900/60 border border-white/5 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <Wrench size={18} className="text-primary mb-1" />
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase">Kilómetros</span>
+                    <span className="text-xs font-bold text-white mt-0.5">{selectedRecordForDetails.mileage.toLocaleString()} km</span>
+                  </div>
+                  <div className="bg-zinc-900/60 border border-white/5 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <DollarSign size={18} className="text-emerald-500 mb-1" />
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase">Costo</span>
+                    <span className="text-xs font-black text-white mt-0.5">
+                      {new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(selectedRecordForDetails.cost)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Subdetails Panel */}
+                {(selectedRecordForDetails.sparkPlugCode || selectedRecordForDetails.frontTire || selectedRecordForDetails.rearTire || selectedRecordForDetails.transmissionPitch) && (
+                  <div className="bg-zinc-900/30 border border-white/5 p-4 rounded-2xl space-y-3">
+                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Ficha Técnica</h4>
+                    <div className="grid grid-cols-1 gap-2 text-sm">
+                      {selectedRecordForDetails.sparkPlugCode && (
+                        <div className="flex justify-between border-b border-white/5 pb-1">
+                          <span className="text-zinc-500 font-medium">Bujía código:</span>
+                          <span className="text-white font-bold font-mono">{selectedRecordForDetails.sparkPlugCode}</span>
+                        </div>
+                      )}
+                      {selectedRecordForDetails.frontTire && (
+                        <div className="flex justify-between border-b border-white/5 pb-1">
+                          <span className="text-zinc-500 font-medium">Medida Delantera:</span>
+                          <span className="text-white font-bold">{selectedRecordForDetails.frontTire}</span>
+                        </div>
+                      )}
+                      {selectedRecordForDetails.rearTire && (
+                        <div className="flex justify-between border-b border-white/5 pb-1">
+                          <span className="text-zinc-500 font-medium">Medida Trasera:</span>
+                          <span className="text-white font-bold">{selectedRecordForDetails.rearTire}</span>
+                        </div>
+                      )}
+                      {selectedRecordForDetails.transmissionPitch && (
+                        <div className="flex justify-between border-b border-white/5 pb-1">
+                          <span className="text-zinc-500 font-medium">Paso Transmisión:</span>
+                          <span className="text-white font-bold">{selectedRecordForDetails.transmissionPitch}</span>
+                        </div>
+                      )}
+                      {selectedRecordForDetails.transmissionRingType && (
+                        <div className="flex justify-between border-b border-white/5 pb-1">
+                          <span className="text-zinc-500 font-medium">Retenes Cadena:</span>
+                          <span className="text-white font-bold text-xs truncate max-w-[180px]">{selectedRecordForDetails.transmissionRingType}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes Block */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider px-1">Notas / Observaciones</h4>
+                  <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-2xl text-sm leading-relaxed text-zinc-300 italic min-h-[80px]">
+                    {selectedRecordForDetails.notes ? `"${selectedRecordForDetails.notes}"` : "Sin anotaciones en este registro."}
+                  </div>
+                </div>
+
+                {/* Footer Controls */}
+                <div className="flex gap-3 pt-6 border-t border-white/5">
+                  <button 
+                    onClick={() => handleDelete(selectedRecordForDetails.id!)}
+                    className="flex items-center justify-center gap-1.5 px-4 py-3.5 bg-red-500/10 hover:bg-red-500/25 border border-red-500/20 text-red-500 font-bold rounded-xl active:scale-95 transition-all text-sm"
+                  >
+                    <Trash2 size={16} /> Eliminar
+                  </button>
+                  
+                  <button 
+                    onClick={() => startEditing(selectedRecordForDetails)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-3.5 bg-primary text-black font-extrabold rounded-xl active:scale-95 transition-all text-sm"
+                  >
+                    <Edit size={16} /> Editar Información
+                  </button>
+                </div>
+
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

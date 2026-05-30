@@ -104,6 +104,17 @@ function NewMaintenanceForm() {
     }
   }, [searchParams]);
 
+  // Auto-replicate selected/custom oil to notes field
+  useEffect(() => {
+    if (category === "Aceite") {
+      if (selectedBrandOrType === "Otro") {
+        setNotes(customBrand);
+      } else if (selectedBrandOrType) {
+        setNotes(selectedBrandOrType);
+      }
+    }
+  }, [selectedBrandOrType, customBrand, category]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;

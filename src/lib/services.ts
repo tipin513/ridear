@@ -322,6 +322,11 @@ export const deleteMaintenanceRecord = async (uid: string, recordId: string) => 
   await deleteDoc(recordDocRef);
 };
 
+export const updateMaintenanceRecord = async (uid: string, recordId: string, updates: Partial<MaintenanceRecord>) => {
+  const recordDocRef = doc(db, "users", uid, "maintenances", recordId);
+  await updateDoc(recordDocRef, updates);
+};
+
 export const getMaintenanceRecords = async (uid: string): Promise<MaintenanceRecord[]> => {
   const recordsRef = collection(db, "users", uid, "maintenances");
   const q = query(recordsRef, orderBy("mileage", "desc"));

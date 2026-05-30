@@ -58,7 +58,8 @@ export default function GuanteraPage() {
 
     try {
       setIsUploading(true);
-      await uploadDigitalDocument(user.uid, selectedType, file, expiryDate, customType, profile?.currentBikeId);
+      const finalExpiryDate = selectedType === 'cedula' ? "" : expiryDate;
+      await uploadDigitalDocument(user.uid, selectedType, file, finalExpiryDate, customType, profile?.currentBikeId);
       setShowUploadModal(false);
       
       // Reset form
@@ -100,7 +101,7 @@ export default function GuanteraPage() {
   // Define document categories for rendering
   const docTypes = [
     { id: 'licencia', name: 'Licencia de Conducir' },
-    { id: 'cedula', name: 'Cédula Verde / Azul' },
+    { id: 'cedula', name: 'Cédula Verde' },
     { id: 'seguro', name: 'Póliza de Seguro' },
     { id: 'vtv', name: 'VTV / RTO' },
     { id: 'otro', name: 'Otro Documento' }
@@ -229,20 +230,22 @@ export default function GuanteraPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">
-                  Fecha de Vencimiento <span className="text-xs opacity-50">(Opcional)</span>
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                  <input 
-                    type="date" 
-                    value={expiryDate}
-                    onChange={(e) => setExpiryDate(e.target.value)}
-                    className="w-full rounded-xl bg-zinc-900 border border-white/10 pl-10 pr-4 py-3 text-white focus:border-primary focus:outline-none [color-scheme:dark]"
-                  />
+              {selectedType !== 'cedula' && (
+                <div className="animate-in fade-in slide-in-from-top-2">
+                  <label className="block text-sm font-medium text-zinc-400 mb-2">
+                    Fecha de Vencimiento <span className="text-xs opacity-50">(Opcional)</span>
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                    <input 
+                      type="date" 
+                      value={expiryDate}
+                      onChange={(e) => setExpiryDate(e.target.value)}
+                      className="w-full rounded-xl bg-zinc-900 border border-white/10 pl-10 pr-4 py-3 text-white focus:border-primary focus:outline-none [color-scheme:dark]"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="pt-4 grid grid-cols-2 gap-3">
                 {/* Hidden File Inputs */}

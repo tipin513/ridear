@@ -12,7 +12,7 @@ export default function BottomNav() {
   if (!user) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border pb-safe">
       <div className="flex justify-around items-center h-16">
         <Link 
           href="/garage" 

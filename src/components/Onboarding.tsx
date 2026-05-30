@@ -77,7 +77,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-black overflow-hidden text-white">
       {/* Background elements */}
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-black to-black opacity-80"></div>
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
+        style={{ backgroundImage: "url('/splash-bg.jpg')" }}
+      >
+        {/* Dark overlay to make text readable over the image */}
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black"></div>
+      </div>
       
       {/* Slider Container */}
       <div 

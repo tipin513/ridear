@@ -82,14 +82,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       {/* Slider Container */}
       <div 
         className="relative z-10 flex-1 flex transition-transform duration-500 ease-out"
-        style={{ transform: `translateX(-${currentIndex * 100}%)`, width: `${SCREENS.length * 100}%` }}
+        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {SCREENS.map((screen, index) => (
-          <div key={index} className="w-full h-full flex-shrink-0 flex flex-col items-center justify-center p-8 text-center" style={{ width: `${100 / SCREENS.length}%` }}>
-            <div className={`transition-all duration-700 ease-out flex flex-col items-center ${index === currentIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+          <div key={index} className="w-full h-full flex-shrink-0 flex flex-col items-center justify-center p-8 text-center">
+            <div className={`transition-all duration-700 ease-out flex flex-col items-center ${index === currentIndex ? 'scale-100 opacity-100' : 'scale-95 opacity-50'}`}>
               {screen.icon}
               <h2 className="text-3xl font-extrabold tracking-tight mb-4 text-white leading-tight">
                 {screen.title}

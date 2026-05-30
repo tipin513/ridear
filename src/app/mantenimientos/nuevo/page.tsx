@@ -102,7 +102,7 @@ export default function NewMaintenancePage() {
         }
       }
 
-      await addMaintenanceRecord(user.uid, {
+      const payload: any = {
         bikeId: profile.currentBikeId,
         date,
         mileage: recordMileage,
@@ -110,13 +110,24 @@ export default function NewMaintenancePage() {
         category,
         type: finalType,
         notes,
-        customBrand: selectedBrandOrType === "Otro" ? customBrand : undefined,
-        sparkPlugCode: category === "Bujías" ? sparkPlugCode : undefined,
-        frontTire: category === "Cubiertas" ? (frontTire === "Otro" ? customFrontTire : frontTire) : undefined,
-        rearTire: category === "Cubiertas" ? (rearTire === "Otro" ? customRearTire : rearTire) : undefined,
-        transmissionPitch: category === "Transmisión" && isFullTransmissionKit ? transmissionPitch : undefined,
-        transmissionRingType: category === "Transmisión" && isFullTransmissionKit ? transmissionRingType : undefined,
-      });
+      };
+
+      if (selectedBrandOrType === "Otro" && customBrand) payload.customBrand = customBrand;
+      if (category === "Bujías" && sparkPlugCode) payload.sparkPlugCode = sparkPlugCode;
+      
+      if (category === "Cubiertas") {
+        const fTire = frontTire === "Otro" ? customFrontTire : frontTire;
+        const rTire = rearTire === "Otro" ? customRearTire : rearTire;
+        if (fTire) payload.frontTire = fTire;
+        if (rTire) payload.rearTire = rTire;
+      }
+
+      if (category === "Transmisión" && isFullTransmissionKit) {
+        if (transmissionPitch) payload.transmissionPitch = transmissionPitch;
+        if (transmissionRingType) payload.transmissionRingType = transmissionRingType;
+      }
+
+      await addMaintenanceRecord(user.uid, payload);
 
       const currentBike = await getBike(user.uid, profile.currentBikeId);
       if (currentBike) {

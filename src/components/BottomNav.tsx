@@ -24,6 +24,7 @@ export default function BottomNav() {
         
         <Link 
           href="/mantenimientos" 
+          id="tour-nav-bitacora"
           className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/mantenimientos' ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
           <Wrench size={24} />
@@ -39,6 +40,7 @@ export default function BottomNav() {
         </Link>
         <Link 
           href="/guantera" 
+          id="tour-nav-documentos"
           className={`flex flex-col items-center justify-center w-full h-full ${pathname.startsWith('/guantera') ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
           <Wallet size={24} />

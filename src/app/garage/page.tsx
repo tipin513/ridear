@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { initializeUserProfile, UserProfile, subscribeToUserProfile, subscribeToMaintenanceRecords, MaintenanceRecord, subscribeToDigitalDocuments, DigitalDocument, uploadUserImage, updateUserProfile, migrateUserToMultiBike, subscribeToBikes, Bike } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
+import OnboardingTour from "@/components/OnboardingTour";
 import { Camera, Settings, ShieldAlert, ShieldCheck, AlertTriangle, Bike as BikeIcon, LogOut, FileWarning, ChevronDown, Plus } from "lucide-react";
 import Link from "next/link";
 
@@ -19,6 +20,12 @@ export default function GaragePage() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { logout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOnboardingComplete = async () => {
+    if (user) {
+      await updateUserProfile(user.uid, { hasCompletedOnboarding: true });
+    }
+  };
 
   const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -140,7 +147,7 @@ export default function GaragePage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Banner / Cover de la moto */}
-      <div className="relative h-48 w-full bg-zinc-800">
+      <div className="relative h-48 w-full bg-zinc-800" id="tour-avatar">
         {currentBike?.bannerURL ? (
           <img 
             src={currentBike.bannerURL} 
@@ -225,7 +232,7 @@ export default function GaragePage() {
           ) : (
             <>
               {/* Bike Selector */}
-              <div className="relative mb-4">
+              <div className="relative mb-4" id="tour-selector">
                 <select 
                   value={currentBike?.id || ""} 
                   onChange={handleBikeChange}
@@ -241,7 +248,7 @@ export default function GaragePage() {
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" size={20} />
               </div>
 
-              <div className="rounded-xl border border-border bg-card p-4">
+              <div className="rounded-xl border border-border bg-card p-4" id="tour-ficha">
                 <div className="flex items-center justify-between border-b border-border/50 pb-2 mb-4">
                   <h2 className="text-lg font-semibold text-primary">Ficha Técnica</h2>
                   <Link href="/garage/edit" className="text-zinc-400 hover:text-white transition-colors">
@@ -306,6 +313,10 @@ export default function GaragePage() {
       </div>
 
       <BottomNav />
+
+      {profile && bikes.length > 0 && !profile.hasCompletedOnboarding && (
+        <OnboardingTour onComplete={handleOnboardingComplete} />
+      )}
     </div>
   );
 }

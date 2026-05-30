@@ -9,6 +9,7 @@ export interface UserProfile {
   photoURL: string | null;
   currentBikeId?: string; // Phase 7: Reference to the currently active bike
   hasMigratedToMultiBike?: boolean; // Phase 8: Flag to prevent migration loops
+  hasCompletedOnboarding?: boolean; // Phase 9: Flag to show onboarding once
   
   // Legacy fields (kept for migration purposes, will be deleted after migration)
   bannerURL?: string;

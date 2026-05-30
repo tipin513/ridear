@@ -82,8 +82,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         style={{ backgroundImage: "url('/splash-bg.jpg')" }}
       >
         {/* Dark overlay to make text readable over the image */}
-        <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black"></div>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black"></div>
       </div>
       
       {/* Slider Container */}

@@ -37,7 +37,7 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     targetId: 'tour-nav-documentos',
-    title: 'Guantera Digital 📂',
+    title: 'Documentos 📂',
     description: 'Escaneá tu Licencia, Cédula Verde y Seguro para tenerlos siempre a mano y recibir alertas antes de que venzan.',
     position: 'top'
   }

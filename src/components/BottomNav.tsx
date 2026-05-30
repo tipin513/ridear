@@ -40,12 +40,12 @@ export default function BottomNav() {
         </Link>
         
         <Link 
-          href="/guantera" 
+          href="/documentos" 
           id="tour-nav-documentos"
-          className={`flex flex-col items-center justify-center w-full h-full ${pathname.startsWith('/guantera') ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
+          className={`flex flex-col items-center justify-center w-full h-full ${pathname.startsWith('/documentos') ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
           <Wallet size={24} />
-          <span className="text-[10px] mt-1 font-medium">Guantera</span>
+          <span className="text-[10px] mt-1 font-medium">Documentos</span>
         </Link>
 
         <Link 

@@ -8,7 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import { Camera, Image as ImageIcon, Plus, Trash2, X, FileWarning, CheckCircle2, ShieldAlert, Loader2, Calendar } from "lucide-react";
 import Link from "next/link";
 
-export default function GuanteraPage() {
+export default function DocumentosPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [documents, setDocuments] = useState<DigitalDocument[]>([]);

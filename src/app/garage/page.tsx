@@ -345,13 +345,13 @@ export default function GaragePage() {
               
               {/* Documents Alert (only show if there are expiring docs) */}
               {expiringDocs.length > 0 && (
-                <Link href="/guantera">
+                <Link href="/documentos">
                   <div className="rounded-xl border p-4 flex gap-3 text-red-500 border-red-500/20 bg-red-500/5 mt-4 transition-all hover:bg-red-500/10">
                     <FileWarning className="h-6 w-6 shrink-0 mt-0.5" />
                     <div>
                       <h3 className="text-sm font-medium">Documentos por vencer</h3>
                       <p className="text-xs mt-1 opacity-80">
-                        Tenés {expiringDocs.length} documento{expiringDocs.length > 1 ? 's' : ''} vencido o próximo a vencer. Toca aquí para revisar tu Guantera Digital.
+                        Tenés {expiringDocs.length} documento{expiringDocs.length > 1 ? 's' : ''} vencido o próximo a vencer. Toca aquí para revisar tus Documentos.
                       </p>
                     </div>
                   </div>

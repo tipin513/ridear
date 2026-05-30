@@ -21,12 +21,14 @@ export default function AddBikePage() {
 
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [bannerPositionY, setBannerPositionY] = useState(50);
 
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setBannerFile(file);
       setBannerPreview(URL.createObjectURL(file));
+      setBannerPositionY(50); // Reset to center
     }
   };
 
@@ -50,7 +52,8 @@ export default function AddBikePage() {
         serviceIntervals: {
           oil: parseInt(oilInterval) || 5000
         },
-        bannerURL: finalBannerURL
+        bannerURL: finalBannerURL,
+        bannerPositionY
       });
 
       // 2. Establecer esta moto como la principal/actual seleccionada
@@ -82,7 +85,12 @@ export default function AddBikePage() {
             <div className="relative h-48 w-full overflow-hidden rounded-xl border-2 border-dashed border-border bg-card">
               {bannerPreview ? (
                 <div className="relative h-full w-full">
-                  <img src={bannerPreview} alt="Banner" className="h-full w-full object-cover" />
+                  <img 
+                    src={bannerPreview} 
+                    alt="Banner" 
+                    className="h-full w-full object-cover transition-all" 
+                    style={{ objectPosition: `50% ${bannerPositionY}%` }}
+                  />
                   <div className="absolute bottom-2 right-2 flex gap-2">
                     <div className="relative">
                       <button 
@@ -114,6 +122,23 @@ export default function AddBikePage() {
                 </div>
               )}
             </div>
+            {bannerPreview && (
+              <div className="rounded-xl border border-white/5 bg-zinc-900/50 p-3 mt-2 space-y-1.5 animate-in fade-in duration-250">
+                <div className="flex justify-between text-xs text-zinc-400 font-medium">
+                  <span>Encuadre Vertical</span>
+                  <span>{bannerPositionY}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={bannerPositionY}
+                  onChange={(e) => setBannerPositionY(parseInt(e.target.value))}
+                  className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <p className="text-[10px] text-zinc-500">Desliza para centrar o ajustar la parte visible de la moto.</p>
+              </div>
+            )}
           </div>
           {/* Bike Details */}
           <div className="space-y-4">

@@ -30,6 +30,7 @@ export interface Bike {
   year: string;
   mileage: number;
   bannerURL?: string;
+  bannerPositionY?: number; // Y position in percentage (0-100), default is 50 (center)
   serviceIntervals: {
     oil: number;
   };

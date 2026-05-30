@@ -21,7 +21,11 @@ export default function DocumentCamera({ onCapture, onClose }: DocumentCameraPro
         stream.getTracks().forEach(t => t.stop());
       }
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
       });
       setStream(newStream);
       if (videoRef.current) {

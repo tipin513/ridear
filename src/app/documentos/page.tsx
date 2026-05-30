@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { subscribeToDigitalDocuments, DigitalDocument, uploadDigitalDocument, deleteDigitalDocument, subscribeToUserProfile, UserProfile } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
 import DocumentCamera from "@/components/DocumentCamera";
-import { Camera, Image as ImageIcon, Plus, Trash2, X, FileWarning, CheckCircle2, ShieldAlert, Loader2, Calendar, FileText, FlipHorizontal } from "lucide-react";
+import { Camera, Image as ImageIcon, Plus, Trash2, X, FileWarning, CheckCircle2, ShieldAlert, Loader2, Calendar, FileText, FlipHorizontal, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
 export default function DocumentosPage() {
@@ -30,6 +30,50 @@ export default function DocumentosPage() {
   // Image Viewer state
   const [selectedDoc, setSelectedDoc] = useState<DigitalDocument | null>(null);
   const [showingBack, setShowingBack] = useState(false);
+
+  // Zoom & Pan state
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const resetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLImageElement>) => {
+    if (scale === 1) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLImageElement>) => {
+    if (!isDragging) return;
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+    
+    const maxPan = 500 * scale;
+    const boundedX = Math.max(-maxPan, Math.min(maxPan, newX));
+    const boundedY = Math.max(-maxPan, Math.min(maxPan, newY));
+    
+    setPosition({ x: boundedX, y: boundedY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLImageElement>) => {
+    setIsDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  const handleDoubleTap = () => {
+    if (scale > 1) {
+      resetZoom();
+    } else {
+      setScale(2.5);
+      setPosition({ x: 0, y: 0 });
+    }
+  };
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -244,6 +288,7 @@ export default function DocumentosPage() {
                       } else {
                          setSelectedDoc(doc);
                          setShowingBack(false);
+                         resetZoom();
                       }
                     }}
                   >
@@ -393,11 +438,60 @@ export default function DocumentosPage() {
           </div>
           
           <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden relative">
-            <img 
-              src={showingBack && selectedDoc.backImageUrl ? selectedDoc.backImageUrl : selectedDoc.imageUrl} 
-              alt="Documento ampliado" 
-              className="max-w-full max-h-full object-contain rounded-lg"
-            />
+            {/* Interactive Image Container */}
+            <div className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none">
+              <img 
+                src={showingBack && selectedDoc.backImageUrl ? selectedDoc.backImageUrl : selectedDoc.imageUrl} 
+                alt="Documento ampliado" 
+                className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-150 ease-out select-none"
+                style={{
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                  cursor: scale > 1 ? 'grab' : 'zoom-in',
+                  touchAction: 'none'
+                }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onDoubleClick={handleDoubleTap}
+              />
+            </div>
+
+            {/* Quick Zoom Controls Floating Overlay */}
+            <div className="absolute bottom-6 flex items-center gap-4 bg-zinc-900/80 border border-white/10 px-4 py-2 rounded-full backdrop-blur-md z-20">
+              <button 
+                onClick={() => setScale(prev => Math.max(1, prev - 0.5))} 
+                disabled={scale <= 1}
+                className="p-1.5 text-white/70 hover:text-white disabled:opacity-30"
+              >
+                <ZoomOut size={18} />
+              </button>
+              
+              <span className="text-xs font-mono text-white/80 min-w-[3rem] text-center">
+                {Math.round(scale * 100)}%
+              </span>
+
+              {scale > 1 && (
+                <button 
+                  onClick={resetZoom} 
+                  className="p-1.5 text-primary hover:text-primary-hover"
+                  title="Restablecer"
+                >
+                  <RotateCcw size={16} />
+                </button>
+              )}
+
+              <button 
+                onClick={() => setScale(prev => Math.min(4, prev + 0.5))} 
+                disabled={scale >= 4}
+                className="p-1.5 text-white/70 hover:text-white disabled:opacity-30"
+              >
+                <ZoomIn size={18} />
+              </button>
+            </div>
+            
+            <p className="absolute bottom-16 text-[10px] text-zinc-500 font-medium select-none pointer-events-none">
+              Doble toque para zoom · Arrastrá para mover
+            </p>
           </div>
           
           <div className="p-6 bg-gradient-to-t from-black to-transparent">
@@ -420,7 +514,7 @@ export default function DocumentosPage() {
               
               {selectedDoc.backImageUrl && (
                 <button 
-                  onClick={() => setShowingBack(!showingBack)}
+                  onClick={() => { setShowingBack(!showingBack); resetZoom(); }}
                   className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl transition-colors backdrop-blur-md"
                 >
                   <FlipHorizontal size={18} />

@@ -18,6 +18,8 @@ export default function AddBikePage() {
   const [year, setYear] = useState("");
   const [mileage, setMileage] = useState("");
   const [oilInterval, setOilInterval] = useState("5000");
+  const [frontTirePressure, setFrontTirePressure] = useState("");
+  const [rearTirePressure, setRearTirePressure] = useState("");
 
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -53,7 +55,9 @@ export default function AddBikePage() {
           oil: parseInt(oilInterval) || 5000
         },
         bannerURL: finalBannerURL,
-        bannerPositionY
+        bannerPositionY,
+        frontTirePressure: parseInt(frontTirePressure) || undefined,
+        rearTirePressure: parseInt(rearTirePressure) || undefined
       });
 
       // 2. Establecer esta moto como la principal/actual seleccionada
@@ -190,6 +194,29 @@ export default function AddBikePage() {
                   className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
                   placeholder="Ej. 15000"
                   required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs text-zinc-400">Presión Delantera (PSI)</label>
+                <input 
+                  type="number" 
+                  value={frontTirePressure}
+                  onChange={(e) => setFrontTirePressure(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+                  placeholder="Ej. 28"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-zinc-400">Presión Trasera (PSI)</label>
+                <input 
+                  type="number" 
+                  value={rearTirePressure}
+                  onChange={(e) => setRearTirePressure(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+                  placeholder="Ej. 32"
                 />
               </div>
             </div>

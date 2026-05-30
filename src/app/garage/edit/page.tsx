@@ -21,6 +21,8 @@ export default function EditGaragePage() {
   const [year, setYear] = useState("");
   const [mileage, setMileage] = useState("");
   const [oilInterval, setOilInterval] = useState("");
+  const [frontTirePressure, setFrontTirePressure] = useState("");
+  const [rearTirePressure, setRearTirePressure] = useState("");
   
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -49,6 +51,8 @@ export default function EditGaragePage() {
               setYear(activeBike.year || "");
               setMileage(activeBike.mileage?.toString() || "0");
               setOilInterval(activeBike.serviceIntervals?.oil?.toString() || "5000");
+              setFrontTirePressure(activeBike.frontTirePressure?.toString() || "");
+              setRearTirePressure(activeBike.rearTirePressure?.toString() || "");
               setBannerPreview(activeBike.bannerURL || null);
               setBannerPositionY(activeBike.bannerPositionY !== undefined ? activeBike.bannerPositionY : 50);
               
@@ -108,7 +112,9 @@ export default function EditGaragePage() {
           mileage: parseInt(mileage) || 0,
           serviceIntervals: {
             oil: parseInt(oilInterval) || 5000
-          }
+          },
+          frontTirePressure: parseInt(frontTirePressure) || undefined,
+          rearTirePressure: parseInt(rearTirePressure) || undefined
         });
       }
 
@@ -274,6 +280,29 @@ export default function EditGaragePage() {
                 className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
                 placeholder="Ej. 15000"
                 required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs text-zinc-400">Presión Delantera (PSI)</label>
+              <input 
+                type="number" 
+                value={frontTirePressure}
+                onChange={(e) => setFrontTirePressure(e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+                placeholder="Ej. 28"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-zinc-400">Presión Trasera (PSI)</label>
+              <input 
+                type="number" 
+                value={rearTirePressure}
+                onChange={(e) => setRearTirePressure(e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" 
+                placeholder="Ej. 32"
               />
             </div>
           </div>

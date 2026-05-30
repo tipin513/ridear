@@ -296,6 +296,22 @@ export default function GaragePage() {
                       <p className="text-xs text-zinc-400 mb-1">km</p>
                     </div>
                   </div>
+                  {(currentBike?.frontTirePressure || currentBike?.rearTirePressure) && (
+                    <div className="col-span-2 pt-2 border-t border-white/5 mt-2 flex gap-6">
+                      {currentBike?.frontTirePressure && (
+                        <div>
+                          <p className="text-xs text-zinc-500">Presión Delantera</p>
+                          <p className="font-medium text-foreground">{currentBike.frontTirePressure} PSI</p>
+                        </div>
+                      )}
+                      {currentBike?.rearTirePressure && (
+                        <div>
+                          <p className="text-xs text-zinc-500">Presión Trasera</p>
+                          <p className="font-medium text-foreground">{currentBike.rearTirePressure} PSI</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               

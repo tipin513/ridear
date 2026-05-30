@@ -37,6 +37,8 @@ export interface Bike {
   };
   lastChainLubeMileage?: number; // Tracks when the chain was last lubed (or changed)
   chainLubeInterval?: number; // E.g. 500km
+  frontTirePressure?: number;
+  rearTirePressure?: number;
 }
 
 export type MaintenanceCategory = "Aceite" | "Bujías" | "Cubiertas" | "Transmisión" | "Fluidos" | "Desgaste" | "General";

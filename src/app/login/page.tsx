@@ -48,11 +48,11 @@ export default function LoginPage() {
           
           <div className="flex flex-col items-center justify-center text-center">
             {/* Custom Logo Container */}
-            <div className="relative mb-8 flex h-32 w-full items-center justify-center">
+            <div className="relative mb-6 flex h-40 w-full items-center justify-center">
               <img 
                 src="/logo.png" 
                 alt="Ridear Logo" 
-                className="h-28 w-auto max-w-[220px] object-contain drop-shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-transform duration-500 hover:scale-105" 
+                className="h-36 w-auto max-w-[280px] object-contain drop-shadow-[0_0_25px_rgba(249,115,22,0.5)] transition-transform duration-500 hover:scale-105" 
               />
             </div>
             

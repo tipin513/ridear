@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wrench, MapPin, User, Wallet } from "lucide-react";
+import { Wrench, MapPin, User, Wallet, Info } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function BottomNav() {
@@ -38,13 +38,22 @@ export default function BottomNav() {
           <MapPin size={24} />
           <span className="text-[10px] mt-1 font-medium">Directorio</span>
         </Link>
+        
         <Link 
           href="/guantera" 
           id="tour-nav-documentos"
           className={`flex flex-col items-center justify-center w-full h-full ${pathname.startsWith('/guantera') ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
           <Wallet size={24} />
-          <span className="text-[10px] mt-1 font-medium">Documentos</span>
+          <span className="text-[10px] mt-1 font-medium">Guantera</span>
+        </Link>
+
+        <Link 
+          href="/sobre-la-app" 
+          className={`flex flex-col items-center justify-center w-full h-full ${pathname.startsWith('/sobre-la-app') ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
+        >
+          <Info size={24} />
+          <span className="text-[10px] mt-1 font-medium">App</span>
         </Link>
       </div>
     </nav>

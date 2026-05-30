@@ -56,7 +56,11 @@ export default function GaragePage() {
       try {
         if (user) {
           // Fase 7: Run Migration if needed
-          await migrateUserToMultiBike(user.uid);
+          try {
+            await migrateUserToMultiBike(user.uid);
+          } catch (migErr) {
+            console.warn("Migration error (can be ignored if cached):", migErr);
+          }
           
           await initializeUserProfile(user);
           

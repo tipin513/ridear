@@ -148,22 +148,32 @@ export const initializeUserProfile = async (user: any): Promise<UserProfile> => 
   const docSnap = await getDoc(docRef);
   
   if (!docSnap.exists()) {
+    const batch = writeBatch(db);
+    
+    // 1. Create the default bike for the new user
+    const newBikeRef = doc(collection(db, "users", user.uid, "bikes"));
+    const defaultBike: Omit<Bike, 'id'> = {
+      brand: "Sin especificar",
+      model: "Sin especificar",
+      year: "----",
+      mileage: 0,
+      serviceIntervals: { oil: 5000 },
+    };
+    batch.set(newBikeRef, defaultBike);
+
+    // 2. Create the user profile
     const newProfile: UserProfile = {
       uid: user.uid,
       displayName: user.displayName,
       email: user.email,
       photoURL: user.photoURL,
-      bikeInfo: {
-        brand: "Sin especificar",
-        model: "Sin especificar",
-        year: "----",
-        mileage: 0,
-      },
-      serviceIntervals: {
-        oil: 5000 // default
-      }
+      currentBikeId: newBikeRef.id,
+      hasMigratedToMultiBike: true,
+      hasCompletedOnboarding: false
     };
-    await setDoc(docRef, newProfile);
+    batch.set(docRef, newProfile);
+    
+    await batch.commit();
     return newProfile;
   }
   return docSnap.data() as UserProfile;

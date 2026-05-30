@@ -32,38 +32,49 @@ export default function EditGaragePage() {
       return;
     }
 
+    let unsubBikes: () => void;
+
     const loadData = async () => {
       try {
         const data = await getUserProfile(user.uid);
         if (data) {
           setProfile(data);
-          const bikes = await getBikes(user.uid);
-          // Fallback logic matching /garage page
-          const activeBike = bikes.find(b => b.id === data.currentBikeId) || bikes[0];
-          if (activeBike) {
-            setCurrentBike(activeBike);
-            setBrand(activeBike.brand || "");
-            setModel(activeBike.model || "");
-            setYear(activeBike.year || "");
-            setMileage(activeBike.mileage?.toString() || "0");
-            setOilInterval(activeBike.serviceIntervals?.oil?.toString() || "5000");
-            setBannerPreview(activeBike.bannerURL || null);
-            setBannerPositionY(activeBike.bannerPositionY !== undefined ? activeBike.bannerPositionY : 50);
-            
-            // Si el currentBikeId no estaba guardado o estaba desincronizado, lo sincronizamos
-            if (data.currentBikeId !== activeBike.id) {
-              await updateUserProfile(user.uid, { currentBikeId: activeBike.id });
+          
+          unsubBikes = subscribeToBikes(user.uid, async (bikes) => {
+            const activeBike = bikes.find(b => b.id === data.currentBikeId) || bikes[0];
+            if (activeBike) {
+              setCurrentBike(activeBike);
+              setBrand(activeBike.brand || "");
+              setModel(activeBike.model || "");
+              setYear(activeBike.year || "");
+              setMileage(activeBike.mileage?.toString() || "0");
+              setOilInterval(activeBike.serviceIntervals?.oil?.toString() || "5000");
+              setBannerPreview(activeBike.bannerURL || null);
+              setBannerPositionY(activeBike.bannerPositionY !== undefined ? activeBike.bannerPositionY : 50);
+              
+              if (data.currentBikeId !== activeBike.id) {
+                await updateUserProfile(user.uid, { currentBikeId: activeBike.id });
+              }
+            } else {
+              // Si no hay motos, el garage debería estar vacío
+              setCurrentBike(null);
             }
-          }
+            setLoading(false);
+          });
+        } else {
+          setLoading(false);
         }
       } catch (error) {
         console.error("Error al cargar datos en edición:", error);
-      } finally {
         setLoading(false);
       }
     };
 
     loadData();
+
+    return () => {
+      if (unsubBikes) unsubBikes();
+    };
   }, [user, router]);
 
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,6 +151,15 @@ export default function EditGaragePage() {
         <h1 className="text-xl font-bold text-foreground">Editar Ficha Técnica</h1>
       </header>
 
+      {!currentBike ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+          <h2 className="text-xl font-semibold text-white mb-2">No se encontró la moto</h2>
+          <p className="text-zinc-400 mb-6">No pudimos cargar la información de esta moto o ya ha sido eliminada.</p>
+          <Link href="/garage" className="rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+            Volver al Garage
+          </Link>
+        </div>
+      ) : (
       <form onSubmit={handleSave} className="px-4 mt-4 space-y-8">
         
         {/* Banner Upload */}
@@ -285,18 +305,23 @@ export default function EditGaragePage() {
           >
             {saving ? <Loader2 className="animate-spin" size={20} /> : "Guardar Cambios"}
           </button>
-          
-          <button 
-            type="button" 
-            onClick={handleDeleteBike}
-            disabled={saving}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 font-semibold text-red-500 hover:bg-red-500/20 focus:outline-none active:scale-95 transition-all disabled:opacity-50"
-          >
-            <Trash2 size={18} />
-            Eliminar Moto
-          </button>
+          <div className="pt-4 border-t border-border">
+            <button
+              type="button"
+              onClick={handleDeleteBike}
+              disabled={saving}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-4 text-sm font-semibold text-red-500 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={18} />
+              Eliminar Moto
+            </button>
+            <p className="text-center text-xs text-zinc-500 mt-3">
+              Esta acción no se puede deshacer y borrará todo el historial.
+            </p>
+          </div>
         </div>
       </form>
+      )}
     </div>
   );
 }

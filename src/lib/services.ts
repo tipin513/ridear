@@ -35,7 +35,11 @@ export interface Bike {
   serviceIntervals: {
     oil: number;
   };
+  lastChainLubeMileage?: number; // Tracks when the chain was last lubed (or changed)
+  chainLubeInterval?: number; // E.g. 500km
 }
+
+export type MaintenanceCategory = "Aceite" | "Bujías" | "Cubiertas" | "Transmisión" | "Fluidos" | "Desgaste" | "General";
 
 export interface MaintenanceRecord {
   id?: string;
@@ -44,8 +48,16 @@ export interface MaintenanceRecord {
   mileage: number;
   cost: number;
   notes: string;
-  category: "Fluidos" | "Desgaste" | "General";
-  type: string; // Ej: "Aceite", "Frenos"
+  category: MaintenanceCategory;
+  type: string; // Ej: "Aceite", "Frenos", o el título específico si es General
+  
+  // Specific fields for new categories
+  customBrand?: string;
+  sparkPlugCode?: string;
+  frontTire?: string;
+  rearTire?: string;
+  transmissionPitch?: string;
+  transmissionRingType?: string;
 }
 
 export interface Workshop {

@@ -104,9 +104,9 @@ export default function GaragePage() {
   // Phase 7: Derived state for currently selected bike
   const currentBike = bikes.find(b => b.id === profile.currentBikeId) || bikes[0];
   const currentBikeRecords = allRecords.filter(r => r.bikeId === currentBike?.id);
-  const latestOilService = currentBikeRecords.find(r => r.category === "Fluidos");
+  const latestOilService = currentBikeRecords.find(r => r.category === "Fluidos" || r.category === "Aceite");
 
-  // Smart Alerts Logic (per bike)
+  // Smart Alerts Logic (per bike) - Oil
   let alertStatus = "unknown";
   let remainingKm = 0;
   
@@ -119,7 +119,23 @@ export default function GaragePage() {
     else alertStatus = "success";
   }
 
+  // Smart Alerts Logic (per bike) - Chain Lube
+  let chainAlertStatus = "unknown";
+  let chainRemainingKm = 0;
+  const CHAIN_LUBE_INTERVAL = currentBike?.chainLubeInterval || 500;
+
+  if (currentBike?.lastChainLubeMileage && currentBike) {
+    const nextLubeAt = currentBike.lastChainLubeMileage + CHAIN_LUBE_INTERVAL;
+    chainRemainingKm = nextLubeAt - currentBike.mileage;
+    
+    if (chainRemainingKm <= 50) chainAlertStatus = "danger";
+    else if (chainRemainingKm <= 200) chainAlertStatus = "warning";
+    else chainAlertStatus = "success";
+  }
+
   const AlertIcon = alertStatus === "danger" ? ShieldAlert : alertStatus === "warning" ? AlertTriangle : ShieldCheck;
+  const ChainAlertIcon = chainAlertStatus === "danger" ? ShieldAlert : chainAlertStatus === "warning" ? AlertTriangle : ShieldCheck;
+  
   const alertColors = {
     danger: "text-red-500 border-red-500/20 bg-red-500/5",
     warning: "text-yellow-500 border-yellow-500/20 bg-yellow-500/5",
@@ -288,11 +304,25 @@ export default function GaragePage() {
                 <div>
                   <h3 className="text-sm font-medium">Próximo Service (Aceite)</h3>
                   {alertStatus === "unknown" ? (
-                    <p className="text-xs mt-1 opacity-80">Registrá un cambio de Fluidos en la bitácora para activar las alertas predictivas.</p>
+                    <p className="text-xs mt-1 opacity-80">Registrá un cambio de Aceite en la bitácora para activar alertas.</p>
                   ) : alertStatus === "danger" && remainingKm < 0 ? (
                     <p className="text-xs mt-1 opacity-80">¡Te pasaste del service por {Math.abs(remainingKm)} km! Cambialo urgente.</p>
                   ) : (
                     <p className="text-xs mt-1 opacity-80">Te quedan aproximadamente <strong>{remainingKm} km</strong> para el próximo cambio.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className={`rounded-xl border p-4 flex gap-3 ${alertColors[chainAlertStatus as keyof typeof alertColors]} mt-4`}>
+                <ChainAlertIcon className="h-6 w-6 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-medium">Lubricación de Cadena</h3>
+                  {chainAlertStatus === "unknown" ? (
+                    <p className="text-xs mt-1 opacity-80">Registrá una limpieza de cadena o cambio de kit para iniciar el contador de 500 km.</p>
+                  ) : chainAlertStatus === "danger" && chainRemainingKm < 0 ? (
+                    <p className="text-xs mt-1 opacity-80">¡Cadena reseca! Te pasaste por {Math.abs(chainRemainingKm)} km. Lubricala para evitar desgaste.</p>
+                  ) : (
+                    <p className="text-xs mt-1 opacity-80">Próxima limpieza y lubricación en <strong>{chainRemainingKm} km</strong>.</p>
                   )}
                 </div>
               </div>

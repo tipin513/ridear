@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeToMaintenanceRecords, deleteMaintenanceRecord, MaintenanceRecord, subscribeToUserProfile, UserProfile } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
-import { Plus, Wrench, Droplet, Cog, Trash2 } from "lucide-react";
+import { Plus, Wrench, Droplet, Cog, Trash2, Zap, CircleDashed, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function MaintenancesPage() {
@@ -56,7 +56,11 @@ export default function MaintenancesPage() {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
+      case "Aceite": return <Droplet size={20} className="text-amber-500" />;
       case "Fluidos": return <Droplet size={20} className="text-blue-500" />;
+      case "Bujías": return <Zap size={20} className="text-yellow-400" />;
+      case "Cubiertas": return <CircleDashed size={20} className="text-zinc-300" />;
+      case "Transmisión": return <LinkIcon size={20} className="text-zinc-400" />;
       case "Desgaste": return <Cog size={20} className="text-orange-500" />;
       default: return <Wrench size={20} className="text-zinc-500" />;
     }
@@ -86,7 +90,7 @@ export default function MaintenancesPage() {
         ) : (
           <div className="space-y-4">
             {currentRecords.map((record) => (
-              <div key={record.id} className="rounded-xl border border-border bg-card p-4 flex items-center gap-4 group hover:border-zinc-700 transition-colors">
+              <div key={record.id} className="rounded-xl border border-border bg-card p-4 flex gap-4 group hover:border-zinc-700 transition-colors">
                 <div className="flex-shrink-0 h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700">
                   {getCategoryIcon(record.category)}
                 </div>
@@ -97,15 +101,35 @@ export default function MaintenancesPage() {
                     <span>•</span>
                     <span className="font-medium text-primary">{record.mileage} km</span>
                   </div>
+                  
+                  {/* Dynamic sub-details */}
+                  <div className="mt-2 space-y-1">
+                    {record.sparkPlugCode && (
+                      <p className="text-xs text-zinc-300"><span className="text-zinc-500">Código:</span> {record.sparkPlugCode}</p>
+                    )}
+                    {(record.frontTire || record.rearTire) && (
+                      <div className="text-xs text-zinc-300 flex flex-col gap-0.5">
+                        {record.frontTire && <p><span className="text-zinc-500">Del:</span> {record.frontTire}</p>}
+                        {record.rearTire && <p><span className="text-zinc-500">Tras:</span> {record.rearTire}</p>}
+                      </div>
+                    )}
+                    {record.transmissionPitch && (
+                      <div className="text-xs text-zinc-300 flex flex-col gap-0.5">
+                        <p><span className="text-zinc-500">Paso:</span> {record.transmissionPitch}</p>
+                        {record.transmissionRingType && <p><span className="text-zinc-500">Tipo:</span> {record.transmissionRingType}</p>}
+                      </div>
+                    )}
+                  </div>
+                  
                 </div>
-                <div className="flex-shrink-0 text-right flex items-center gap-3">
+                <div className="flex-shrink-0 text-right flex flex-col justify-between items-end">
                   <div>
                     <p className="text-sm font-bold text-foreground">${record.cost}</p>
                   </div>
                   {record.id && (
                     <button
                       onClick={() => handleDelete(record.id!)}
-                      className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
+                      className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer mt-2"
                       title="Eliminar registro"
                     >
                       <Trash2 size={18} />

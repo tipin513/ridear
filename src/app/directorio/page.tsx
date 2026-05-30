@@ -6,13 +6,14 @@ import { useAuth } from "@/context/AuthContext";
 import { 
   subscribeToWorkshops, subscribeToPublicWorkshops, deleteWorkshop, updateWorkshop, Workshop,
   subscribeToTowing, subscribeToPublicTowing, deleteTowing, updateTowing, Towing,
-  subscribeToStores, subscribeToPublicStores, deleteStore, updateStore, Store
+  subscribeToStores, subscribeToPublicStores, deleteStore, updateStore, Store,
+  subscribeToGears, subscribeToPublicGears, deleteGear, updateGear, Gear
 } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
-import { Plus, MapPin, Phone, Trash2, Globe, Lock, Search, Wrench, Truck, Store as StoreIcon, Tag } from "lucide-react";
+import { Plus, MapPin, Phone, Trash2, Globe, Lock, Search, Wrench, Truck, Store as StoreIcon, Tag, Shirt } from "lucide-react";
 import Link from "next/link";
 
-type ResourceType = "talleres" | "gruas" | "tiendas";
+type ResourceType = "talleres" | "gruas" | "tiendas" | "indumentaria";
 type TabType = "mis-guardados" | "comunidad";
 
 export default function DirectorioPage() {
@@ -30,6 +31,9 @@ export default function DirectorioPage() {
   
   const [myStores, setMyStores] = useState<Store[]>([]);
   const [publicStores, setPublicStores] = useState<Store[]>([]);
+  
+  const [myGears, setMyGears] = useState<Gear[]>([]);
+  const [publicGears, setPublicGears] = useState<Gear[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,6 +56,9 @@ export default function DirectorioPage() {
       unsubscribers.push(subscribeToStores(user.uid, (data) => setMyStores(data)));
       unsubscribers.push(subscribeToPublicStores((data) => setPublicStores(data)));
       
+      unsubscribers.push(subscribeToGears(user.uid, (data) => setMyGears(data)));
+      unsubscribers.push(subscribeToPublicGears((data) => setPublicGears(data)));
+      
       setLoading(false);
     }
 
@@ -69,6 +76,7 @@ export default function DirectorioPage() {
       if (resourceType === "talleres") await deleteWorkshop(user.uid, id);
       else if (resourceType === "gruas") await deleteTowing(user.uid, id);
       else if (resourceType === "tiendas") await deleteStore(user.uid, id);
+      else if (resourceType === "indumentaria") await deleteGear(user.uid, id);
     } catch (error) {
       console.error("Error al eliminar:", error);
       alert("No se pudo eliminar. Intentalo de nuevo.");
@@ -81,6 +89,7 @@ export default function DirectorioPage() {
       if (resourceType === "talleres") await updateWorkshop(user.uid, item.id, { isPublic: !item.isPublic });
       else if (resourceType === "gruas") await updateTowing(user.uid, item.id, { isPublic: !item.isPublic });
       else if (resourceType === "tiendas") await updateStore(user.uid, item.id, { isPublic: !item.isPublic });
+      else if (resourceType === "indumentaria") await updateGear(user.uid, item.id, { isPublic: !item.isPublic });
     } catch (error) {
       console.error("Error al actualizar visibilidad:", error);
       alert("No se pudo actualizar.");
@@ -96,6 +105,7 @@ export default function DirectorioPage() {
   if (resourceType === "talleres") currentList = activeTab === "mis-guardados" ? myWorkshops : publicWorkshops;
   else if (resourceType === "gruas") currentList = activeTab === "mis-guardados" ? myTowings : publicTowings;
   else if (resourceType === "tiendas") currentList = activeTab === "mis-guardados" ? myStores : publicStores;
+  else if (resourceType === "indumentaria") currentList = activeTab === "mis-guardados" ? myGears : publicGears;
 
   const filteredList = currentList.filter(item => {
     const searchLower = searchQuery.toLowerCase();
@@ -132,6 +142,12 @@ export default function DirectorioPage() {
           >
             <StoreIcon size={16} /> Repuestos
           </button>
+          <button 
+            onClick={() => { setResourceType("indumentaria"); setSearchQuery(""); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors text-sm font-semibold border ${resourceType === "indumentaria" ? "bg-primary/10 border-primary text-primary" : "bg-card border-border text-zinc-400"}`}
+          >
+            <Shirt size={16} /> Indumentaria
+          </button>
         </div>
 
         {/* Segmented Control */}
@@ -157,7 +173,7 @@ export default function DirectorioPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 
             type="text" 
-            placeholder={`Buscar en ${resourceType === "talleres" ? "talleres" : resourceType === "gruas" ? "asistencias" : "tiendas"}...`}
+            placeholder={`Buscar en ${resourceType === "talleres" ? "talleres" : resourceType === "gruas" ? "asistencias" : resourceType === "tiendas" ? "tiendas" : "indumentaria"}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
@@ -167,7 +183,7 @@ export default function DirectorioPage() {
         {filteredList.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/30 p-8 text-center mt-6">
             <div className="rounded-full bg-zinc-800 p-4 mb-4 text-zinc-400">
-              {resourceType === "talleres" ? <Wrench size={32} /> : resourceType === "gruas" ? <Truck size={32} /> : <StoreIcon size={32} />}
+              {resourceType === "talleres" ? <Wrench size={32} /> : resourceType === "gruas" ? <Truck size={32} /> : resourceType === "tiendas" ? <StoreIcon size={32} /> : <Shirt size={32} />}
             </div>
             <h3 className="text-lg font-semibold text-foreground">No hay resultados</h3>
             <p className="text-sm text-zinc-500 mt-2">

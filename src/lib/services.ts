@@ -605,3 +605,75 @@ export const subscribeToPublicStores = (callback: (stores: Store[]) => void) => 
     callback(stores);
   });
 };
+
+// --- Gears (Indumentaria / Accesorios) ---
+export interface Gear {
+  id?: string;
+  name: string;
+  phone?: string;
+  address: string;
+  categories: string[];
+  notes?: string;
+  isPublic: boolean;
+  ownerUid: string;
+}
+
+export const addGear = async (uid: string, gear: Omit<Gear, 'id'>) => {
+  const gearsRef = collection(db, "users", uid, "gears");
+  const docRef = await addDoc(gearsRef, gear);
+
+  if (gear.isPublic) {
+    const publicRef = doc(db, "publicGears", docRef.id);
+    await setDoc(publicRef, { ...gear, originalId: docRef.id, originalUid: uid });
+  }
+};
+
+export const updateGear = async (uid: string, gearId: string, data: Partial<Gear>) => {
+  const gearRef = doc(db, "users", uid, "gears", gearId);
+  await updateDoc(gearRef, data);
+
+  const publicRef = doc(db, "publicGears", gearId);
+  const docSnap = await getDoc(gearRef);
+  if (docSnap.exists()) {
+    const currentData = docSnap.data() as Gear;
+    if (currentData.isPublic) {
+      await setDoc(publicRef, { ...currentData, originalId: gearId, originalUid: uid });
+    } else {
+      try { await deleteDoc(publicRef); } catch(e) {}
+    }
+  }
+};
+
+export const deleteGear = async (uid: string, gearId: string) => {
+  const gearRef = doc(db, "users", uid, "gears", gearId);
+  await deleteDoc(gearRef);
+
+  const publicRef = doc(db, "publicGears", gearId);
+  try {
+    await deleteDoc(publicRef);
+  } catch(e) {}
+};
+
+export const subscribeToGears = (uid: string, callback: (gears: Gear[]) => void) => {
+  const gearsRef = collection(db, "users", uid, "gears");
+  const q = query(gearsRef, orderBy("name", "asc"));
+  return onSnapshot(q, (querySnapshot) => {
+    const gears = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Gear[];
+    callback(gears);
+  });
+};
+
+export const subscribeToPublicGears = (callback: (gears: Gear[]) => void) => {
+  const publicGearsRef = collection(db, "publicGears");
+  const q = query(publicGearsRef, orderBy("name", "asc"));
+  return onSnapshot(q, (querySnapshot) => {
+    const gears = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Gear[];
+    callback(gears);
+  });
+};

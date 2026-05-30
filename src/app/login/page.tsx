@@ -4,17 +4,29 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Bike, Loader2 } from "lucide-react";
+import Onboarding from "@/components/Onboarding";
 
 export default function LoginPage() {
   const { user, loading, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (user && !loading) {
+    // Client-side check for onboarding
+    const hasCompletedOnboarding = localStorage.getItem("ridear_onboarding_completed");
+    if (!hasCompletedOnboarding) {
+      setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user && !loading && showOnboarding === false) {
       router.push("/garage");
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, showOnboarding]);
 
   const handleLogin = async () => {
     setIsAuthenticating(true);
@@ -25,11 +37,15 @@ export default function LoginPage() {
     }
   };
 
-  if (loading) return (
+  if (loading || showOnboarding === null) return (
     <div className="flex h-screen items-center justify-center bg-black">
       <Loader2 className="animate-spin text-primary w-8 h-8" />
     </div>
   );
+
+  if (showOnboarding) {
+    return <Onboarding onComplete={() => setShowOnboarding(false)} />;
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden">

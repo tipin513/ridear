@@ -222,7 +222,15 @@ export default function DirectorioPage() {
                   {item.address && (
                     <div className="flex items-center gap-3 text-sm text-zinc-300">
                       <MapPin size={16} className="text-zinc-500 flex-shrink-0" />
-                      <span>{item.address}</span>
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="hover:text-primary transition-colors hover:underline"
+                        title="Ver en Google Maps"
+                      >
+                        {item.address}
+                      </a>
                     </div>
                   )}
                 </div>

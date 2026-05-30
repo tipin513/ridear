@@ -13,7 +13,7 @@ const OIL_OPTIONS = [
   "Castrol Actevo (Semi-sintético) - 10W40", "Castrol Power 1 (100% Sintético) - 10W40", "Castrol Power 1 (100% Sintético) - 15W50",
   "Yamalube 4T (Mineral) - 20W50", "Yamalube 4T (Semi-sintético) - 10W40", "Ipone R4000 (Semi-sintético) - 10W40",
   "Ipone R4000 (Semi-sintético) - 15W50", "Ipone Katana (100% Sintético) - 10W40", "Ipone Katana (100% Sintético) - 15W50",
-  "YPF Elaion Moto (Mineral) - 20W50", "YPF Elaion Moto (Semi-sintético) - 10W40", "Otro"
+  "Ipone Katana (100% Sintético) - 10W50", "YPF Elaion Moto (Mineral) - 20W50", "YPF Elaion Moto (Semi-sintético) - 10W40", "Otro"
 ];
 
 const SPARK_PLUG_OPTIONS = [
@@ -39,7 +39,7 @@ const REAR_TIRE_SIZES = [
   "180/55 - 17 (Alta Cilindrada / Pista)", "Otro"
 ];
 
-const TRANSMISSION_BRANDS = ["DID (Japón)", "RK Takasago (Japón)", "JT Sprockets", "Riffel", "Choho", "KMC", "Wstandard", "Catalano", "Otro"];
+const TRANSMISSION_BRANDS = ["Repuesto Original (Fabricante)", "DID (Japón)", "RK Takasago (Japón)", "JT Sprockets", "Riffel", "Choho", "KMC", "Wstandard", "Catalano", "Otro"];
 
 const TRANSMISSION_PITCHES = [
   "Paso 428 (Motos chicas de 110cc a 150cc)", "Paso 520 (media cilindrada: 200cc a 400cc)",

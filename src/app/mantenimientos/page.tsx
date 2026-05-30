@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { subscribeToMaintenanceRecords, deleteMaintenanceRecord, MaintenanceRecord } from "@/lib/services";
+import { subscribeToMaintenanceRecords, deleteMaintenanceRecord, MaintenanceRecord, subscribeToUserProfile, UserProfile } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Wrench, Droplet, Cog, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -12,6 +12,7 @@ export default function MaintenancesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,17 +21,23 @@ export default function MaintenancesPage() {
       return;
     }
 
-    let unsubscribe: (() => void) | undefined;
+    let unsubRecords: (() => void) | undefined;
+    let unsubProfile: (() => void) | undefined;
 
     if (user) {
-      unsubscribe = subscribeToMaintenanceRecords(user.uid, (data) => {
+      unsubProfile = subscribeToUserProfile(user.uid, (data) => {
+        setProfile(data);
+      });
+
+      unsubRecords = subscribeToMaintenanceRecords(user.uid, (data) => {
         setRecords(data);
         setLoading(false);
       });
     }
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubRecords) unsubRecords();
+      if (unsubProfile) unsubProfile();
     };
   }, [user, authLoading, router]);
 
@@ -59,26 +66,26 @@ export default function MaintenancesPage() {
     return <div className="flex h-screen items-center justify-center">Cargando...</div>;
   }
 
+  const currentRecords = records.filter(r => r.bikeId === profile?.currentBikeId);
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-10 flex items-center justify-between bg-background/90 px-4 py-4 backdrop-blur-md border-b border-border">
-        <h1 className="text-xl font-bold text-foreground">Bitácora Mecánica</h1>
-      </header>
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-white/5 px-4 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Bitácora</h1>
+          <p className="text-xs text-zinc-400">Historial de mantenimientos de tu moto actual</p>
+        </div>
+      </div>
 
       <div className="px-4 mt-6">
-        {records.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 p-8 text-center mt-10">
-            <div className="rounded-full bg-primary/10 p-4 mb-4">
-              <Wrench className="h-8 w-8 text-primary" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground">Tu bitácora está vacía</h3>
-            <p className="text-sm text-zinc-400 mt-2 mb-6">
-              Registrá tus cambios de aceite, pastillas de freno, cubiertas y mantené un historial impecable.
-            </p>
+        {currentRecords.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center text-zinc-500">
+            <Wrench size={48} className="mb-4 opacity-20" />
+            <p>Aún no tenés mantenimientos registrados para esta moto.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {records.map((record) => (
+            {currentRecords.map((record) => (
               <div key={record.id} className="rounded-xl border border-border bg-card p-4 flex items-center gap-4 group hover:border-zinc-700 transition-colors">
                 <div className="flex-shrink-0 h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700">
                   {getCategoryIcon(record.category)}

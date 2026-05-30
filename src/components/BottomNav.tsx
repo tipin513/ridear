@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Wrench, MapPin, User, LogOut } from "lucide-react";
+import { Wrench, MapPin, User, Wallet } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function BottomNav() {
@@ -31,20 +31,19 @@ export default function BottomNav() {
         </Link>
 
         <Link 
-          href="/talleres" 
-          className={`flex flex-col items-center justify-center w-full h-full ${pathname === '/talleres' ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
+          href="/directorio" 
+          className={`flex flex-col items-center justify-center w-full h-full ${pathname.startsWith('/directorio') ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
           <MapPin size={24} />
-          <span className="text-[10px] mt-1 font-medium">Talleres</span>
+          <span className="text-[10px] mt-1 font-medium">Directorio</span>
         </Link>
-        
-        <button 
-          onClick={logout}
-          className="flex flex-col items-center justify-center w-full h-full text-zinc-500 hover:text-zinc-300"
+        <Link 
+          href="/guantera" 
+          className={`flex flex-col items-center justify-center w-full h-full ${pathname.startsWith('/guantera') ? 'text-primary' : 'text-zinc-500 hover:text-zinc-300'}`}
         >
-          <LogOut size={24} />
-          <span className="text-[10px] mt-1 font-medium">Salir</span>
-        </button>
+          <Wallet size={24} />
+          <span className="text-[10px] mt-1 font-medium">Documentos</span>
+        </Link>
       </div>
     </nav>
   );

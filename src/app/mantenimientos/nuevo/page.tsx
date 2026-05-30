@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { addMaintenanceRecord, getUserProfile, updateUserProfile } from "@/lib/services";
+import { addMaintenanceRecord, getUserProfile, getBike, updateBike } from "@/lib/services";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
@@ -28,8 +28,14 @@ export default function NewMaintenancePage() {
     try {
       const recordMileage = parseInt(mileage) || 0;
       
-      // 1. Guardar el registro de mantenimiento
+      // Phase 7: Guardar el registro de mantenimiento con el bikeId actual
+      const profile = await getUserProfile(user.uid);
+      if (!profile?.currentBikeId) {
+        throw new Error("No hay una moto seleccionada");
+      }
+
       await addMaintenanceRecord(user.uid, {
+        bikeId: profile.currentBikeId,
         date,
         mileage: recordMileage,
         cost: parseInt(cost) || 0,
@@ -38,16 +44,13 @@ export default function NewMaintenancePage() {
         notes
       });
 
-      // 2. Verificar y actualizar automáticamente el kilometraje de la moto en el perfil
-      const profile = await getUserProfile(user.uid);
-      if (profile && profile.bikeInfo) {
-        const currentMileage = profile.bikeInfo.mileage || 0;
+      // Actualizar automáticamente el kilometraje de la moto
+      const currentBike = await getBike(user.uid, profile.currentBikeId);
+      if (currentBike) {
+        const currentMileage = currentBike.mileage || 0;
         if (recordMileage > currentMileage) {
-          await updateUserProfile(user.uid, {
-            bikeInfo: {
-              ...profile.bikeInfo,
-              mileage: recordMileage
-            }
+          await updateBike(user.uid, currentBike.id, {
+            mileage: recordMileage
           });
         }
       }

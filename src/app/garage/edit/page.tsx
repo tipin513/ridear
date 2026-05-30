@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getUserProfile, UserProfile, uploadUserImage, updateUserProfile } from "@/lib/services";
-import { ChevronLeft, Camera, Loader2 } from "lucide-react";
+import { getUserProfile, UserProfile, uploadUserImage, getBike, getBikes, updateBike, Bike, deleteBike, updateUserProfile } from "@/lib/services";
+import { ChevronLeft, Camera, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 export default function EditGaragePage() {
   const { user } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [currentBike, setCurrentBike] = useState<Bike | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -31,17 +32,33 @@ export default function EditGaragePage() {
     }
 
     const loadData = async () => {
-      const data = await getUserProfile(user.uid);
-      if (data) {
-        setProfile(data);
-        setBrand(data.bikeInfo?.brand || "");
-        setModel(data.bikeInfo?.model || "");
-        setYear(data.bikeInfo?.year || "");
-        setMileage(data.bikeInfo?.mileage?.toString() || "0");
-        setOilInterval(data.serviceIntervals?.oil?.toString() || "5000");
-        setBannerPreview(data.bannerURL || null);
+      try {
+        const data = await getUserProfile(user.uid);
+        if (data) {
+          setProfile(data);
+          const bikes = await getBikes(user.uid);
+          // Fallback logic matching /garage page
+          const activeBike = bikes.find(b => b.id === data.currentBikeId) || bikes[0];
+          if (activeBike) {
+            setCurrentBike(activeBike);
+            setBrand(activeBike.brand || "");
+            setModel(activeBike.model || "");
+            setYear(activeBike.year || "");
+            setMileage(activeBike.mileage?.toString() || "0");
+            setOilInterval(activeBike.serviceIntervals?.oil?.toString() || "5000");
+            setBannerPreview(activeBike.bannerURL || null);
+            
+            // Si el currentBikeId no estaba guardado o estaba desincronizado, lo sincronizamos
+            if (data.currentBikeId !== activeBike.id) {
+              await updateUserProfile(user.uid, { currentBikeId: activeBike.id });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error al cargar datos en edición:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     loadData();
@@ -61,24 +78,24 @@ export default function EditGaragePage() {
     setSaving(true);
 
     try {
-      let finalBannerURL = profile.bannerURL;
+      let finalBannerURL = currentBike?.bannerURL || "";
       
       if (bannerFile) {
         finalBannerURL = await uploadUserImage(user.uid, bannerFile, 'banner');
       }
 
-      await updateUserProfile(user.uid, {
-        bannerURL: finalBannerURL,
-        bikeInfo: {
+      if (currentBike) {
+        await updateBike(user.uid, currentBike.id, {
+          bannerURL: finalBannerURL,
           brand,
           model,
           year,
           mileage: parseInt(mileage) || 0,
-        },
-        serviceIntervals: {
-          oil: parseInt(oilInterval) || 5000
-        }
-      });
+          serviceIntervals: {
+            oil: parseInt(oilInterval) || 5000
+          }
+        });
+      }
 
       router.push("/garage");
     } catch (error) {
@@ -86,6 +103,25 @@ export default function EditGaragePage() {
       alert("Hubo un error al guardar. Intenta de nuevo.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteBike = async () => {
+    if (!user || !currentBike) return;
+    
+    if (confirm("¿Estás seguro de que quieres eliminar esta moto DEFINITIVAMENTE? Se borrarán todos sus mantenimientos y fotos de documentos asociados.")) {
+      try {
+        setSaving(true);
+        console.log("Iniciando eliminación de moto:", currentBike.id);
+        await deleteBike(user.uid, currentBike.id);
+        console.log("Moto eliminada con éxito de Firestore. Actualizando perfil...");
+        await updateUserProfile(user.uid, { currentBikeId: "" }); // Reset so it falls back to another bike
+        router.push("/garage");
+      } catch (error: any) {
+        console.error("Error al eliminar moto:", error);
+        alert(`Hubo un error al intentar eliminar la moto: ${error.message || error}`);
+        setSaving(false);
+      }
     }
   };
 
@@ -107,19 +143,38 @@ export default function EditGaragePage() {
           <label className="text-sm font-medium text-zinc-400">Foto de Portada (La Moto)</label>
           <div className="relative h-48 w-full overflow-hidden rounded-xl border-2 border-dashed border-border bg-card">
             {bannerPreview ? (
-              <img src={bannerPreview} alt="Banner" className="h-full w-full object-cover" />
+              <div className="relative h-full w-full">
+                <img src={bannerPreview} alt="Banner" className="h-full w-full object-cover" />
+                <div className="absolute bottom-2 right-2 flex gap-2">
+                  <div className="relative">
+                    <button 
+                      type="button" 
+                      className="flex items-center gap-1.5 rounded-lg bg-black/60 backdrop-blur-md px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-black/80 transition-colors shadow-lg"
+                    >
+                      <Camera size={14} />
+                      Cambiar Foto
+                    </button>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleBannerChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-zinc-500">
                 <Camera size={32} className="mb-2" />
                 <span className="text-sm">Toca para subir foto</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleBannerChange}
+                  className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+                />
               </div>
             )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleBannerChange}
-              className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-            />
           </div>
         </div>
 
@@ -196,13 +251,25 @@ export default function EditGaragePage() {
           </div>
         </div>
 
-        <button 
-          type="submit" 
-          disabled={saving}
-          className="flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 focus:outline-none active:scale-95 transition-all disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="animate-spin" size={20} /> : "Guardar Cambios"}
-        </button>
+        <div className="space-y-4 pt-4 pb-8">
+          <button 
+            type="submit" 
+            disabled={saving}
+            className="flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 focus:outline-none active:scale-95 transition-all disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="animate-spin" size={20} /> : "Guardar Cambios"}
+          </button>
+          
+          <button 
+            type="button" 
+            onClick={handleDeleteBike}
+            disabled={saving}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 font-semibold text-red-500 hover:bg-red-500/20 focus:outline-none active:scale-95 transition-all disabled:opacity-50"
+          >
+            <Trash2 size={18} />
+            Eliminar Moto
+          </button>
+        </div>
       </form>
     </div>
   );

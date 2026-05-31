@@ -20,6 +20,17 @@ const categoriesList = [
   { id: 'bateria', name: 'Batería', dbCat: 'Batería', icon: '/bateria.png', color: 'border-yellow-500/30 bg-yellow-500/5' },
 ];
 
+const BATTERY_TYPES = ["AGM / VRLA", "Gel", "Ácido-Plomo Convencional", "Litio / LiFePO4"];
+const BATTERY_MODELS = [
+  "YTX4L-BS / YTZ5S (Motos 110cc/Scooters)",
+  "YTX7L-BS (Motos 150CC a 250cc)",
+  "YTX9-BS (Motos 300cc a 400cc)",
+  "YT12A-BS / YTZ10S (Motos Deportivas, Touring)",
+  "YTX14-BS (Alta cilindrada, Adventure grandes)",
+  "12N5-3B (Motos antiguas)",
+  "Otro"
+];
+
 export default function MaintenancesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -44,6 +55,7 @@ export default function MaintenancesPage() {
   const [editTransmissionPitch, setEditTransmissionPitch] = useState("");
   const [editBatteryType, setEditBatteryType] = useState("");
   const [editBatteryModel, setEditBatteryModel] = useState("");
+  const [editCustomBatteryModel, setEditCustomBatteryModel] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -133,7 +145,19 @@ export default function MaintenancesPage() {
     setEditRearTire(record.rearTire || "");
     setEditTransmissionPitch(record.transmissionPitch || "");
     setEditBatteryType(record.batteryType || "");
-    setEditBatteryModel(record.batteryModel || "");
+    
+    const modelVal = record.batteryModel || "";
+    if (modelVal === "") {
+      setEditBatteryModel("");
+      setEditCustomBatteryModel("");
+    } else if (BATTERY_MODELS.slice(0, -1).includes(modelVal)) {
+      setEditBatteryModel(modelVal);
+      setEditCustomBatteryModel("");
+    } else {
+      setEditBatteryModel("Otro");
+      setEditCustomBatteryModel(modelVal);
+    }
+    
     setIsEditing(true);
   };
 
@@ -161,7 +185,7 @@ export default function MaintenancesPage() {
       }
       if (selectedRecordForDetails.category === "Batería") {
         updates.batteryType = editBatteryType;
-        updates.batteryModel = editBatteryModel;
+        updates.batteryModel = editBatteryModel === "Otro" ? editCustomBatteryModel : editBatteryModel;
       }
       
       await updateMaintenanceRecord(user.uid, selectedRecordForDetails.id, updates);
@@ -519,29 +543,47 @@ export default function MaintenancesPage() {
                   </div>
                 )}
                 {selectedRecordForDetails.category === "Batería" && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-zinc-400">Tipo / Tecnología</label>
-                      <select 
-                        value={editBatteryType} 
-                        onChange={(e) => setEditBatteryType(e.target.value)} 
-                        className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none appearance-none"
-                      >
-                        <option value="">Seleccionar...</option>
-                        {["AGM / VRLA", "Gel", "Ácido-Plomo Convencional", "Litio / LiFePO4"].map(t => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-zinc-400">Tipo / Tecnología</label>
+                        <select 
+                          value={editBatteryType} 
+                          onChange={(e) => setEditBatteryType(e.target.value)} 
+                          className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none appearance-none"
+                        >
+                          <option value="">Seleccionar...</option>
+                          {BATTERY_TYPES.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-zinc-400">Modelo (Código)</label>
+                        <select 
+                          value={editBatteryModel} 
+                          onChange={(e) => setEditBatteryModel(e.target.value)} 
+                          className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none appearance-none"
+                        >
+                          <option value="">Seleccionar...</option>
+                          {BATTERY_MODELS.map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-zinc-400">Modelo</label>
-                      <input 
-                        type="text" 
-                        value={editBatteryModel} 
-                        onChange={(e) => setEditBatteryModel(e.target.value)} 
-                        className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
-                      />
-                    </div>
+                    {editBatteryModel === "Otro" && (
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-zinc-400">Especifique Modelo</label>
+                        <input 
+                          type="text" 
+                          value={editCustomBatteryModel} 
+                          onChange={(e) => setEditCustomBatteryModel(e.target.value)} 
+                          className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                          placeholder="Ej. YTX5L-BS"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 

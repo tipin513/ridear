@@ -39,6 +39,18 @@ const REAR_TIRE_SIZES = [
   "180/55 - 17 (Alta Cilindrada / Pista)", "Otro"
 ];
 
+const BATTERY_BRANDS = ["Yuasa", "Motobatt", "Bosch", "Moura", "Kronwell", "Wstandard", "Pionero", "Skyrich", "Otro"];
+const BATTERY_TYPES = ["AGM / VRLA", "Gel", "Ácido-Plomo Convencional", "Litio / LiFePO4"];
+const BATTERY_MODELS = [
+  "YTX4L-BS / YTZ5S (Motos 110cc/Scooters)",
+  "YTX7L-BS (Motos 150CC a 250cc)",
+  "YTX9-BS (Motos 300cc a 400cc)",
+  "YT12A-BS / YTZ10S (Motos Deportivas, Touring)",
+  "YTX14-BS (Alta cilindrada, Adventure grandes)",
+  "12N5-3B (Motos antiguas)",
+  "Otro"
+];
+
 const TRANSMISSION_BRANDS = ["Repuesto Original (Fabricante)", "DID (Japón)", "RK Takasago (Japón)", "JT Sprockets", "Riffel", "Choho", "KMC", "Wstandard", "Catalano", "Otro"];
 
 const TRANSMISSION_PITCHES = [
@@ -77,6 +89,10 @@ function NewMaintenanceForm() {
   const [transmissionRingType, setTransmissionRingType] = useState(TRANSMISSION_RINGS[0]);
   const [isFullTransmissionKit, setIsFullTransmissionKit] = useState(true);
 
+  const [batteryType, setBatteryType] = useState(BATTERY_TYPES[0]);
+  const [batteryModel, setBatteryModel] = useState("");
+  const [customBatteryModel, setCustomBatteryModel] = useState("");
+
   // Set initial category from query parameters
   useEffect(() => {
     const catParam = searchParams.get("category");
@@ -100,6 +116,8 @@ function NewMaintenanceForm() {
         setCategory("General");
       } else if (catParam === "aceite") {
         setCategory("Aceite");
+      } else if (catParam === "bateria") {
+        setCategory("Batería");
       }
     }
   }, [searchParams]);
@@ -139,6 +157,8 @@ function NewMaintenanceForm() {
         } else {
           finalType = "Lubricación y Ajuste de Cadena";
         }
+      } else if (category === "Batería") {
+        finalType = "Cambio de Batería: " + (selectedBrandOrType === "Otro" ? customBrand : selectedBrandOrType);
       }
 
       const payload: any = {
@@ -164,6 +184,12 @@ function NewMaintenanceForm() {
       if (category === "Transmisión" && isFullTransmissionKit) {
         if (transmissionPitch) payload.transmissionPitch = transmissionPitch;
         if (transmissionRingType) payload.transmissionRingType = transmissionRingType;
+      }
+
+      if (category === "Batería") {
+        if (selectedBrandOrType) payload.batteryBrand = selectedBrandOrType === "Otro" ? customBrand : selectedBrandOrType;
+        if (batteryType) payload.batteryType = batteryType;
+        if (batteryModel) payload.batteryModel = batteryModel === "Otro" ? customBatteryModel : batteryModel;
       }
 
       await addMaintenanceRecord(user.uid, payload);
@@ -228,6 +254,7 @@ function NewMaintenanceForm() {
                 <option value="Bujías">Bujías</option>
                 <option value="Cubiertas">Cubiertas (Neumáticos)</option>
                 <option value="Transmisión">Kit de Transmisión / Cadena</option>
+                <option value="Batería">Batería</option>
                 <option value="Desgaste">Frenos / Desgaste</option>
                 <option value="Fluidos">Líquidos / Fluidos</option>
                 <option value="General">Mantenimiento General / Otros</option>
@@ -389,6 +416,46 @@ function NewMaintenanceForm() {
                     </div>
                   </>
                 )}
+              </div>
+            )}
+
+            {category === "Batería" && (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-400">Marca de Batería</label>
+                  <div className="relative">
+                    <select value={selectedBrandOrType} onChange={e => setSelectedBrandOrType(e.target.value)} required className="w-full rounded-lg border border-border bg-black/40 px-3 py-3 text-sm text-foreground focus:border-primary appearance-none">
+                      <option value="" disabled>Selecciona marca...</option>
+                      {BATTERY_BRANDS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                  </div>
+                </div>
+                {selectedBrandOrType === "Otro" && (
+                  <input type="text" value={customBrand} onChange={e => setCustomBrand(e.target.value)} className="w-full rounded-lg border border-border bg-black/40 px-3 py-3 text-sm focus:border-primary" placeholder="Especifique marca" required />
+                )}
+
+                <div className="space-y-1 pt-2">
+                  <label className="text-xs text-zinc-400">Tipo / Tecnología</label>
+                  <div className="relative">
+                    <select value={batteryType} onChange={e => setBatteryType(e.target.value)} required className="w-full rounded-lg border border-border bg-black/40 px-3 py-3 text-sm text-foreground focus:border-primary appearance-none">
+                      {BATTERY_TYPES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                  </div>
+                </div>
+
+                <div className="space-y-1 pt-2">
+                  <label className="text-xs text-zinc-400">Modelo (Código)</label>
+                  <div className="relative">
+                    <select value={batteryModel} onChange={e => setBatteryModel(e.target.value)} required className="w-full rounded-lg border border-border bg-black/40 px-3 py-3 text-sm text-foreground focus:border-primary appearance-none">
+                      <option value="" disabled>Selecciona modelo...</option>
+                      {BATTERY_MODELS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                  </div>
+                  {batteryModel === "Otro" && <input type="text" value={customBatteryModel} onChange={e => setCustomBatteryModel(e.target.value)} className="w-full mt-2 rounded-lg border border-border bg-black/40 px-3 py-3 text-sm focus:border-primary" placeholder="Ej. YTX5L-BS" required />}
+                </div>
               </div>
             )}
           </div>

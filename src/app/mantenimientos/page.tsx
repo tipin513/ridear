@@ -17,6 +17,7 @@ const categoriesList = [
   { id: 'refrigerante', name: 'Refrigerante', dbCat: 'Fluidos', icon: '/refrigerante.png', color: 'border-emerald-500/30 bg-emerald-500/5', prefillType: 'Líquido Refrigerante' },
   { id: 'transmision', name: 'Transmisión', dbCat: 'Transmisión', icon: '/transmision.png', color: 'border-orange-500/30 bg-orange-500/5' },
   { id: 'aceite', name: 'Aceite', dbCat: 'Aceite', icon: '/aceite.png', color: 'border-indigo-500/30 bg-indigo-500/5' },
+  { id: 'bateria', name: 'Batería', dbCat: 'Batería', icon: '/bateria.png', color: 'border-yellow-500/30 bg-yellow-500/5' },
 ];
 
 export default function MaintenancesPage() {
@@ -178,6 +179,7 @@ export default function MaintenancesPage() {
     if (cat === "Bujías") return "/bujias.png";
     if (cat === "Cubiertas") return "/cubiertas.png";
     if (cat === "Transmisión") return "/transmision.png";
+    if (cat === "Batería") return "/bateria.png";
     if (cat === "Desgaste" || typeLower.includes("freno") || typeLower.includes("pastilla")) return "/frenos.png";
     if (cat === "Fluidos") {
       if (typeLower.includes("refrigerante")) return "/refrigerante.png";
@@ -559,7 +561,7 @@ export default function MaintenancesPage() {
                 </div>
 
                 {/* Subdetails Panel */}
-                {(selectedRecordForDetails.sparkPlugCode || selectedRecordForDetails.frontTire || selectedRecordForDetails.rearTire || selectedRecordForDetails.transmissionPitch) && (
+                {(selectedRecordForDetails.sparkPlugCode || selectedRecordForDetails.frontTire || selectedRecordForDetails.rearTire || selectedRecordForDetails.transmissionPitch || selectedRecordForDetails.batteryType || selectedRecordForDetails.batteryModel) && (
                   <div className="bg-zinc-900/30 border border-white/5 p-4 rounded-2xl space-y-3">
                     <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Ficha Técnica</h4>
                     <div className="grid grid-cols-1 gap-2 text-sm">
@@ -591,6 +593,18 @@ export default function MaintenancesPage() {
                         <div className="flex justify-between border-b border-white/5 pb-1">
                           <span className="text-zinc-500 font-medium">Retenes Cadena:</span>
                           <span className="text-white font-bold text-xs truncate max-w-[180px]">{selectedRecordForDetails.transmissionRingType}</span>
+                        </div>
+                      )}
+                      {selectedRecordForDetails.batteryType && (
+                        <div className="flex justify-between border-b border-white/5 pb-1">
+                          <span className="text-zinc-500 font-medium">Tecnología:</span>
+                          <span className="text-white font-bold text-xs truncate max-w-[180px]">{selectedRecordForDetails.batteryType}</span>
+                        </div>
+                      )}
+                      {selectedRecordForDetails.batteryModel && (
+                        <div className="flex justify-between border-b border-white/5 pb-1">
+                          <span className="text-zinc-500 font-medium">Modelo:</span>
+                          <span className="text-white font-bold text-xs truncate max-w-[180px]">{selectedRecordForDetails.batteryModel}</span>
                         </div>
                       )}
                     </div>

@@ -22,6 +22,7 @@ export default function DocumentosPage() {
   const [selectedType, setSelectedType] = useState<DigitalDocument['type']>('licencia');
   const [customType, setCustomType] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [updatingDoc, setUpdatingDoc] = useState<DigitalDocument | null>(null);
   
   const [frontFile, setFrontFile] = useState<File | null>(null);
   const [backFile, setBackFile] = useState<File | null>(null);
@@ -135,6 +136,9 @@ export default function DocumentosPage() {
 
     try {
       setIsUploading(true);
+      if (updatingDoc) {
+        await deleteDigitalDocument(user.uid, updatingDoc.id, updatingDoc.storagePath, updatingDoc.backStoragePath);
+      }
       const finalExpiryDate = selectedType === 'cedula' ? "" : expiryDate;
       await uploadDigitalDocument(user.uid, selectedType, frontFile, backFile, finalExpiryDate, customType, profile?.currentBikeId);
       
@@ -144,12 +148,23 @@ export default function DocumentosPage() {
       setExpiryDate("");
       setFrontFile(null);
       setBackFile(null);
+      setUpdatingDoc(null);
     } catch (error) {
       console.error("Error subiendo documento:", error);
       alert("Hubo un error al subir el documento.");
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const startUpdate = (doc: DigitalDocument) => {
+    setSelectedType(doc.type);
+    if (doc.type === 'otro' && doc.customTypeName) setCustomType(doc.customTypeName);
+    if (doc.expiryDate) setExpiryDate(doc.expiryDate);
+    setUpdatingDoc(doc);
+    setFrontFile(null);
+    setBackFile(null);
+    setShowUploadModal(true);
   };
 
   const handleDelete = async (doc: DigitalDocument) => {
@@ -243,7 +258,7 @@ export default function DocumentosPage() {
           <p className="text-xs text-zinc-400">Tus papeles seguros e impermeables</p>
         </div>
         <button 
-          onClick={() => setShowUploadModal(true)}
+          onClick={() => { setUpdatingDoc(null); setFrontFile(null); setBackFile(null); setExpiryDate(""); setShowUploadModal(true); }}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-black shadow-lg shadow-primary/30 transition-transform active:scale-95"
         >
           <Plus size={24} />
@@ -302,6 +317,24 @@ export default function DocumentosPage() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
                     
+                    {/* Action buttons overlay */}
+                    <div className="absolute top-2 right-2 flex gap-2 z-20">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); startUpdate(doc); }}
+                        className="p-1.5 bg-black/50 rounded-full text-white hover:text-primary backdrop-blur-md"
+                        title="Actualizar"
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDelete(doc); }}
+                        className="p-1.5 bg-black/50 rounded-full text-white hover:text-red-500 backdrop-blur-md"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+
                     <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end pointer-events-none">
                       <div>
                         <h3 className="font-semibold text-white drop-shadow-md">{docName}</h3>
@@ -330,8 +363,8 @@ export default function DocumentosPage() {
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-zinc-950 border border-white/10 sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-full duration-300 max-h-[90vh] overflow-y-auto pb-8">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Nuevo Documento</h2>
-              <button onClick={() => setShowUploadModal(false)} className="text-zinc-500 hover:text-white p-2">
+              <h2 className="text-xl font-bold">{updatingDoc ? 'Actualizar Documento' : 'Nuevo Documento'}</h2>
+              <button onClick={() => { setShowUploadModal(false); setUpdatingDoc(null); }} className="text-zinc-500 hover:text-white p-2">
                 <X size={20} />
               </button>
             </div>
@@ -406,6 +439,8 @@ export default function DocumentosPage() {
               >
                 {isUploading ? (
                   <><Loader2 className="animate-spin" size={20} /> Guardando...</>
+                ) : updatingDoc ? (
+                  "Actualizar y Reemplazar"
                 ) : (
                   "Guardar Documento"
                 )}

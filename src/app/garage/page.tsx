@@ -133,8 +133,27 @@ export default function GaragePage() {
     else chainAlertStatus = "success";
   }
 
+  // Smart Alerts Logic (per bike) - Battery
+  let batteryAlertStatus = "unknown";
+  let batteryRemainingDays = 0;
+  const latestBatteryService = currentBikeRecords.filter(r => r.category === "Batería").sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  
+  if (latestBatteryService && latestBatteryService.date) {
+    const installDate = new Date(latestBatteryService.date + 'T00:00:00');
+    const now = new Date();
+    const diffTime = now.getTime() - installDate.getTime();
+    const daysPassed = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    batteryRemainingDays = 730 - daysPassed; // 24 months approx 730 days
+    
+    if (batteryRemainingDays <= 30) batteryAlertStatus = "danger";
+    else if (batteryRemainingDays <= 90) batteryAlertStatus = "warning";
+    else batteryAlertStatus = "success";
+  }
+
   const AlertIcon = alertStatus === "danger" ? ShieldAlert : alertStatus === "warning" ? AlertTriangle : ShieldCheck;
   const ChainAlertIcon = chainAlertStatus === "danger" ? ShieldAlert : chainAlertStatus === "warning" ? AlertTriangle : ShieldCheck;
+  const BatteryAlertIcon = batteryAlertStatus === "danger" ? ShieldAlert : batteryAlertStatus === "warning" ? AlertTriangle : ShieldCheck;
   
   const alertColors = {
     danger: "text-red-500 border-red-500/20 bg-red-500/5",
@@ -339,6 +358,20 @@ export default function GaragePage() {
                     <p className="text-xs mt-1 opacity-80">¡Cadena reseca! Te pasaste por {Math.abs(chainRemainingKm)} km. Lubricala para evitar desgaste.</p>
                   ) : (
                     <p className="text-xs mt-1 opacity-80">Próxima limpieza y lubricación en <strong>{chainRemainingKm} km</strong>.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className={`rounded-xl border p-4 flex gap-3 ${alertColors[batteryAlertStatus as keyof typeof alertColors]} mt-4`}>
+                <BatteryAlertIcon className="h-6 w-6 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-medium">Estado de Batería</h3>
+                  {batteryAlertStatus === "unknown" ? (
+                    <p className="text-xs mt-1 opacity-80">Registrá un cambio de batería para hacer seguimiento de su vida útil (24 meses).</p>
+                  ) : batteryAlertStatus === "danger" && batteryRemainingDays < 0 ? (
+                    <p className="text-xs mt-1 opacity-80">¡Tu batería ya superó los 24 meses hace {Math.abs(batteryRemainingDays)} días! Revisala o cambiala.</p>
+                  ) : (
+                    <p className="text-xs mt-1 opacity-80">Le quedan aproximadamente <strong>{batteryRemainingDays} días</strong> de vida útil esperada.</p>
                   )}
                 </div>
               </div>

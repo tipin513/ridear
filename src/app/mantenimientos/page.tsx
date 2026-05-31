@@ -42,6 +42,8 @@ export default function MaintenancesPage() {
   const [editFrontTire, setEditFrontTire] = useState("");
   const [editRearTire, setEditRearTire] = useState("");
   const [editTransmissionPitch, setEditTransmissionPitch] = useState("");
+  const [editBatteryType, setEditBatteryType] = useState("");
+  const [editBatteryModel, setEditBatteryModel] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -130,6 +132,8 @@ export default function MaintenancesPage() {
     setEditFrontTire(record.frontTire || "");
     setEditRearTire(record.rearTire || "");
     setEditTransmissionPitch(record.transmissionPitch || "");
+    setEditBatteryType(record.batteryType || "");
+    setEditBatteryModel(record.batteryModel || "");
     setIsEditing(true);
   };
 
@@ -154,6 +158,10 @@ export default function MaintenancesPage() {
       }
       if (selectedRecordForDetails.category === "Transmisión") {
         updates.transmissionPitch = editTransmissionPitch;
+      }
+      if (selectedRecordForDetails.category === "Batería") {
+        updates.batteryType = editBatteryType;
+        updates.batteryModel = editBatteryModel;
       }
       
       await updateMaintenanceRecord(user.uid, selectedRecordForDetails.id, updates);
@@ -508,6 +516,32 @@ export default function MaintenancesPage() {
                       onChange={(e) => setEditTransmissionPitch(e.target.value)} 
                       className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
                     />
+                  </div>
+                )}
+                {selectedRecordForDetails.category === "Batería" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-zinc-400">Tipo / Tecnología</label>
+                      <select 
+                        value={editBatteryType} 
+                        onChange={(e) => setEditBatteryType(e.target.value)} 
+                        className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none appearance-none"
+                      >
+                        <option value="">Seleccionar...</option>
+                        {["AGM / VRLA", "Gel", "Ácido-Plomo Convencional", "Litio / LiFePO4"].map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-zinc-400">Modelo</label>
+                      <input 
+                        type="text" 
+                        value={editBatteryModel} 
+                        onChange={(e) => setEditBatteryModel(e.target.value)} 
+                        className="w-full rounded-xl bg-zinc-900 border border-white/10 px-4 py-3 text-white focus:border-primary focus:outline-none" 
+                      />
+                    </div>
                   </div>
                 )}
 

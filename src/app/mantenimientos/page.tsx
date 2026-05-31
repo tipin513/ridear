@@ -82,6 +82,112 @@ export default function MaintenancesPage() {
       if (unsubProfile) unsubProfile();
     };
   }, [user, authLoading, router]);
+ 
+  // Retroactively auto-populate notes for existing records in background
+  useEffect(() => {
+    if (!user || records.length === 0) return;
+
+    const runRetroactiveUpdate = async () => {
+      for (const record of records) {
+        if (!record.id) continue;
+
+        // Skip if notes already has customized manual content
+        // We only upgrade if empty or if it has the generic sub-record text
+        const isGenericOrEmpty = !record.notes || 
+          record.notes === "Registrado automáticamente vía Service General." ||
+          (record.category === "Batería" && (record.notes.includes("Marca: Cambio Batería") || record.notes.includes("Marca: Revisión Batería")));
+        if (!isGenericOrEmpty) continue;
+
+        const updates: Partial<MaintenanceRecord> = {};
+
+        // 0. Clean legacy title for battery if polluted with "Cambio Batería"
+        if (record.category === "Batería" && record.type) {
+          let cleanType = record.type;
+          if (cleanType.includes("Cambio Batería")) cleanType = cleanType.replace("Cambio Batería", "").replace("  ", " ").trim();
+          if (cleanType.includes("Revisión Batería")) cleanType = cleanType.replace("Revisión Batería", "").replace("  ", " ").trim();
+          if (cleanType !== record.type) {
+             updates.type = cleanType;
+          }
+        }
+
+        // 1. Assign parentRecordId if it's an old sub-record without one
+        if (!record.parentRecordId && record.notes === "Registrado automáticamente vía Service General.") {
+          const parent = records.find(r => r.category === "General" && r.date === record.date && r.mileage === record.mileage);
+          if (parent && parent.id) {
+            updates.parentRecordId = parent.id;
+          }
+        }
+
+        // 2. Generate and assign autoNotes
+        const autoNotes = getRetroactiveNotesForRecord(record, records);
+        if (autoNotes && autoNotes !== record.notes) {
+          updates.notes = autoNotes;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          try {
+            await updateMaintenanceRecord(user.uid, record.id, updates);
+          } catch (err) {
+            console.error("Error updating retroactive notes:", err);
+          }
+        }
+      }
+    };
+
+    runRetroactiveUpdate();
+  }, [records, user]);
+
+  const getRetroactiveNotesForRecord = (record: MaintenanceRecord, allRecords: MaintenanceRecord[]) => {
+    let parts: string[] = [];
+    const cat = record.category;
+    
+    if (cat === "Aceite") {
+      if (record.type) {
+        parts.push(`Aceite: ${record.type}`);
+      }
+    } else if (cat === "Bujías") {
+      if (record.type) {
+        const code = record.sparkPlugCode ? ` - Código: ${record.sparkPlugCode}` : "";
+        parts.push(`Bujía: ${record.type}${code}`);
+      }
+    } else if (cat === "Cubiertas") {
+      if (record.type) {
+        const fSize = record.frontTire || "Sin cambio";
+        const rSize = record.rearTire || "Sin cambio";
+        parts.push(`Cubiertas - Marca: ${record.type} | Delantera: ${fSize} | Trasera: ${rSize}`);
+      }
+    } else if (cat === "Transmisión") {
+      if (record.type && record.type.startsWith("Cambio de Kit Completo")) {
+        const brand = record.type.replace("Cambio de Kit Completo: ", "");
+        parts.push(`Transmisión - Kit Completo: ${brand} | Paso: ${record.transmissionPitch || "No especificado"} | Cadena: ${record.transmissionRingType || "No especificada"}`);
+      } else if (record.type === "Lubricación de Cadena" || record.type === "Lubricación y Ajuste de Cadena") {
+        parts.push(`Transmisión - Ajuste y Lubricación de Cadena`);
+      }
+    } else if (cat === "Batería") {
+      let brand = record.batteryBrand || "";
+      if (brand === "Cambio Batería" || brand === "Revisión Batería") brand = "";
+      const type = record.batteryType || "";
+      const model = record.batteryModel || "";
+      if (brand || type || model) {
+        parts.push(`Batería - Marca: ${brand || "No especificada"} | Tipo: ${type} | Modelo: ${model || "No especificado"}`);
+      }
+    } else if (cat === "General") {
+      const subRecords = allRecords.filter(r => 
+        r.parentRecordId === record.id || 
+        (r.notes === "Registrado automáticamente vía Service General." && 
+         r.mileage === record.mileage && 
+         r.date === record.date)
+      );
+      if (subRecords.length > 0) {
+        parts.push("Service General:");
+        subRecords.forEach(sub => {
+          parts.push(`  - ${sub.type}`);
+        });
+      }
+    }
+    
+    return parts.join("\n");
+  };
 
   const syncBikeMileageAndLube = async (updatedRecords: MaintenanceRecord[]) => {
     if (!user || !profile?.currentBikeId) return;
@@ -121,12 +227,29 @@ export default function MaintenancesPage() {
 
     try {
       await deleteMaintenanceRecord(user.uid, recordId);
+      // Si es un Service General, eliminar tambien todos sus sub-registros vinculados
+      const nestedSubRecords = records.filter(r => 
+        r.parentRecordId === recordId ||
+        (r.notes === "Registrado automáticamente vía Service General." && 
+         r.mileage === selectedRecordForDetails?.mileage && 
+         r.date === selectedRecordForDetails?.date)
+      );
+      for (const sub of nestedSubRecords) {
+        if (sub.id) {
+          await deleteMaintenanceRecord(user.uid, sub.id);
+        }
+      }
+
       if (selectedRecordForDetails?.id === recordId) {
         setSelectedRecordForDetails(null);
       }
       
       // Recalculate bike stats with the remaining records
-      const remainingRecords = records.filter(r => r.id !== recordId);
+      const remainingRecords = records.filter(r => 
+        r.id !== recordId && 
+        r.parentRecordId !== recordId && 
+        !(r.notes === "Registrado automáticamente vía Service General." && r.mileage === selectedRecordForDetails?.mileage && r.date === selectedRecordForDetails?.date)
+      );
       await syncBikeMileageAndLube(remainingRecords);
     } catch (error) {
       console.error("Error al eliminar mantenimiento:", error);
@@ -207,6 +330,7 @@ export default function MaintenancesPage() {
     const cat = record.category;
     const typeLower = (record.type || "").toLowerCase();
     
+    if (cat === "General") return "/general.png";
     if (cat === "Aceite") return "/aceite.png";
     if (cat === "Bujías") return "/bujias.png";
     if (cat === "Cubiertas") return "/cubiertas.png";
@@ -671,6 +795,12 @@ export default function MaintenancesPage() {
                           <span className="text-white font-bold text-xs truncate max-w-[180px]">{selectedRecordForDetails.transmissionRingType}</span>
                         </div>
                       )}
+                      {selectedRecordForDetails.batteryBrand && selectedRecordForDetails.batteryBrand !== "Cambio Batería" && selectedRecordForDetails.batteryBrand !== "Revisión Batería" && (
+                        <div className="flex justify-between border-b border-white/5 pb-1">
+                          <span className="text-zinc-500 font-medium">Marca:</span>
+                          <span className="text-white font-bold text-xs truncate max-w-[180px]">{selectedRecordForDetails.batteryBrand}</span>
+                        </div>
+                      )}
                       {selectedRecordForDetails.batteryType && (
                         <div className="flex justify-between border-b border-white/5 pb-1">
                           <span className="text-zinc-500 font-medium">Tecnología:</span>
@@ -687,13 +817,13 @@ export default function MaintenancesPage() {
                   </div>
                 )}
 
-                {/* Notes Block */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider px-1">Notas / Observaciones</h4>
-                  <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-2xl text-sm leading-relaxed text-zinc-300 italic min-h-[80px]">
-                    {selectedRecordForDetails.notes ? `"${selectedRecordForDetails.notes}"` : "Sin anotaciones en este registro."}
-                  </div>
-                </div>
+                 {/* Notes Block */}
+                 <div className="space-y-2">
+                   <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider px-1">Notas / Observaciones</h4>
+                   <div className="bg-zinc-900/60 border border-white/5 p-4 rounded-2xl text-sm leading-relaxed text-zinc-300 italic min-h-[80px]">
+                     {selectedRecordForDetails.notes ? `"${selectedRecordForDetails.notes}"` : "Sin anotaciones en este registro."}
+                   </div>
+                 </div>
 
                 {/* Footer Controls */}
                 <div className="flex gap-3 pt-6 border-t border-white/5">

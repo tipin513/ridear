@@ -63,6 +63,7 @@ export interface MaintenanceRecord {
   batteryBrand?: string;
   batteryType?: string;
   batteryModel?: string;
+  parentRecordId?: string;
 }
 
 export interface Workshop {
@@ -317,7 +318,8 @@ export const subscribeToBike = (uid: string, bikeId: string, callback: (bike: Bi
 
 export const addMaintenanceRecord = async (uid: string, record: Omit<MaintenanceRecord, 'id'>) => {
   const recordsRef = collection(db, "users", uid, "maintenances");
-  await addDoc(recordsRef, record);
+  const docRef = await addDoc(recordsRef, record);
+  return docRef.id;
 };
 
 export const deleteMaintenanceRecord = async (uid: string, recordId: string) => {

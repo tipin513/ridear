@@ -18,6 +18,7 @@ const categoriesList = [
   { id: 'transmision', name: 'Transmisión', dbCat: 'Transmisión', icon: '/transmision.png', color: 'border-orange-500/30 bg-orange-500/5' },
   { id: 'aceite', name: 'Aceite', dbCat: 'Aceite', icon: '/aceite.png', color: 'border-indigo-500/30 bg-indigo-500/5' },
   { id: 'bateria', name: 'Batería', dbCat: 'Batería', icon: '/bateria.png', color: 'border-yellow-500/30 bg-yellow-500/5' },
+  { id: 'clutch', name: 'Clutch', dbCat: 'Clutch', icon: '/clutch.png', color: 'border-red-500/30 bg-red-500/5' },
 ];
 
 const BATTERY_TYPES = ["AGM / VRLA", "Gel", "Ácido-Plomo Convencional", "Litio / LiFePO4"];
@@ -170,6 +171,10 @@ export default function MaintenancesPage() {
       const model = record.batteryModel || "";
       if (brand || type || model) {
         parts.push(`Batería - Marca: ${brand || "No especificada"} | Tipo: ${type} | Modelo: ${model || "No especificado"}`);
+      }
+    } else if (cat === "Clutch") {
+      if (record.type) {
+        parts.push(`Embrague: ${record.type}`);
       }
     } else if (cat === "General") {
       const subRecords = allRecords.filter(r => 
@@ -336,6 +341,7 @@ export default function MaintenancesPage() {
     if (cat === "Cubiertas") return "/cubiertas.png";
     if (cat === "Transmisión") return "/transmision.png";
     if (cat === "Batería") return "/bateria.png";
+    if (cat === "Clutch") return "/clutch.png";
     if (cat === "Desgaste" || typeLower.includes("freno") || typeLower.includes("pastilla")) return "/frenos.png";
     if (cat === "Fluidos") {
       if (typeLower.includes("refrigerante")) return "/refrigerante.png";

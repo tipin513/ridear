@@ -41,7 +41,7 @@ export interface Bike {
   rearTirePressure?: number;
 }
 
-export type MaintenanceCategory = "Aceite" | "Bujías" | "Cubiertas" | "Transmisión" | "Fluidos" | "Desgaste" | "General" | "Batería";
+export type MaintenanceCategory = "Aceite" | "Bujías" | "Cubiertas" | "Transmisión" | "Fluidos" | "Desgaste" | "General" | "Batería" | "Clutch";
 
 export interface MaintenanceRecord {
   id?: string;

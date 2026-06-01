@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { initializeUserProfile, UserProfile, subscribeToUserProfile, subscribeToMaintenanceRecords, MaintenanceRecord, subscribeToDigitalDocuments, DigitalDocument, uploadUserImage, updateUserProfile, migrateUserToMultiBike, subscribeToBikes, Bike } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
 import OnboardingTour from "@/components/OnboardingTour";
-import { Camera, Settings, ShieldAlert, ShieldCheck, AlertTriangle, Bike as BikeIcon, LogOut, FileWarning, ChevronDown, Plus } from "lucide-react";
+import { Camera, Settings, ShieldAlert, ShieldCheck, AlertTriangle, Bike as BikeIcon, LogOut, FileWarning, ChevronDown, Plus, Wrench } from "lucide-react";
 import Link from "next/link";
 
 export default function GaragePage() {
@@ -151,9 +151,30 @@ export default function GaragePage() {
     else batteryAlertStatus = "success";
   }
 
+  // Smart Alerts Logic (per bike) - Clutch Discs
+  let clutchAlertStatus = "unknown";
+  let clutchRemainingKm = 0;
+  const latestClutchService = currentBikeRecords
+    .filter(r => r.category === "Clutch" && (r.type || "").toLowerCase().includes("cambio"))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  
+  if (latestClutchService && currentBike) {
+    const nextClutchServiceAt = latestClutchService.mileage + 30000;
+    clutchRemainingKm = nextClutchServiceAt - currentBike.mileage;
+    
+    if (clutchRemainingKm <= 1000) clutchAlertStatus = "danger";
+    else if (clutchRemainingKm <= 3000) clutchAlertStatus = "warning";
+    else clutchAlertStatus = "success";
+  }
+
+  // Cable Adjustment Alert - Every 5,000 km
+  const nextCableAdjustAt = currentBike ? Math.ceil((currentBike.mileage + 1) / 5000) * 5000 : 5000;
+  const cableAdjustRemainingKm = currentBike ? nextCableAdjustAt - currentBike.mileage : 5000;
+
   const AlertIcon = alertStatus === "danger" ? ShieldAlert : alertStatus === "warning" ? AlertTriangle : ShieldCheck;
   const ChainAlertIcon = chainAlertStatus === "danger" ? ShieldAlert : chainAlertStatus === "warning" ? AlertTriangle : ShieldCheck;
   const BatteryAlertIcon = batteryAlertStatus === "danger" ? ShieldAlert : batteryAlertStatus === "warning" ? AlertTriangle : ShieldCheck;
+  const ClutchAlertIcon = clutchAlertStatus === "danger" ? ShieldAlert : clutchAlertStatus === "warning" ? AlertTriangle : ShieldCheck;
   
   const alertColors = {
     danger: "text-red-500 border-red-500/20 bg-red-500/5",
@@ -375,6 +396,22 @@ export default function GaragePage() {
                   )}
                 </div>
               </div>
+
+              <div className={`rounded-xl border p-4 flex gap-3 ${alertColors[clutchAlertStatus as keyof typeof alertColors]} mt-4`}>
+                <ClutchAlertIcon className="h-6 w-6 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-medium">Discos de Embrague (Clutch)</h3>
+                  {clutchAlertStatus === "unknown" ? (
+                    <p className="text-xs mt-1 opacity-80">Registrá un cambio de discos de embrague para activar alertas preventivas (30.000 km).</p>
+                  ) : clutchAlertStatus === "danger" && clutchRemainingKm < 0 ? (
+                    <p className="text-xs mt-1 opacity-80">¡Revisión urgente! Te pasaste por {Math.abs(clutchRemainingKm)} km del cambio de discos recomendado.</p>
+                  ) : (
+                    <p className="text-xs mt-1 opacity-80">Próxima revisión preventiva de discos de embrague en <strong>{clutchRemainingKm} km</strong>.</p>
+                  )}
+                </div>
+              </div>
+
+
               
               {/* Documents Alert (only show if there are expiring docs) */}
               {expiringDocs.length > 0 && (

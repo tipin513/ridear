@@ -73,7 +73,8 @@ const GENERAL_CHECKLIST_OPTIONS = [
   { id: "transmissionKit", label: "Cambio de Kit de Transmisión", dbCat: "Transmisión" },
   { id: "bolts", label: "Ajuste de Bulones / Tornillería general", dbCat: "General" },
   { id: "refrigerant", label: "Revisión / Cambio de Refrigerante", dbCat: "Fluidos" },
-  { id: "battery", label: "Revisión / Cambio de Batería", dbCat: "Batería" }
+  { id: "battery", label: "Revisión / Cambio de Batería", dbCat: "Batería" },
+  { id: "clutch", label: "Discos de Embrague (Clutch)", dbCat: "Clutch" }
 ];
 
 function NewMaintenanceForm() {
@@ -109,6 +110,8 @@ function NewMaintenanceForm() {
   const [batteryType, setBatteryType] = useState(BATTERY_TYPES[0]);
   const [batteryModel, setBatteryModel] = useState("");
   const [customBatteryModel, setCustomBatteryModel] = useState("");
+  
+  const [clutchChanged, setClutchChanged] = useState(false);
 
   const [generalChecklist, setGeneralChecklist] = useState({
     oil: false,
@@ -120,7 +123,8 @@ function NewMaintenanceForm() {
     bolts: false,
     refrigerant: false,
     battery: false,
-    transmissionKit: false
+    transmissionKit: false,
+    clutch: false
   });
 
   const [pastRecords, setPastRecords] = useState<MaintenanceRecord[]>([]);
@@ -132,7 +136,8 @@ function NewMaintenanceForm() {
     sparkPlugs: { revision: false, cambio: false, usePrevious: true, selected: "", custom: "" },
     refrigerant: { revision: false, cambio: false, usePrevious: true, selected: "", custom: "" },
     battery: { revision: false, cambio: false, usePrevious: true, brand: "", customBrand: "", type: "", model: "", customModel: "" },
-    transmissionKit: { usePrevious: true, brand: "", customBrand: "", pitch: "", ringType: "" }
+    transmissionKit: { usePrevious: true, brand: "", customBrand: "", pitch: "", ringType: "" },
+    clutch: { cambio: false }
   });
 
   useEffect(() => {
@@ -168,6 +173,8 @@ function NewMaintenanceForm() {
         setCategory("Aceite");
       } else if (catParam === "bateria") {
         setCategory("Batería");
+      } else if (catParam === "clutch") {
+        setCategory("Clutch");
       }
     }
   }, [searchParams]);
@@ -208,6 +215,8 @@ function NewMaintenanceForm() {
         const model = batteryModel === "Otro" ? customBatteryModel : batteryModel;
         parts.push(`Batería - Marca: ${brand} | Tipo: ${batteryType} | Modelo: ${model || "No especificado"}`);
       }
+    } else if (category === "Clutch") {
+      parts.push(`Embrague - Discos de Embrague: ${clutchChanged ? "Cambiados" : "Revisión / Ajuste"}`);
     } else if (category === "General") {
       const checkedOpts = GENERAL_CHECKLIST_OPTIONS.filter(opt => generalChecklist[opt.id as keyof typeof generalChecklist]);
       if (checkedOpts.length > 0) {
@@ -283,6 +292,9 @@ function NewMaintenanceForm() {
             parts.push(`  - Batería: ${subParts.join(" y ") || "Sí"}`);
           } else if (opt.id === "transmissionKit") {
             parts.push(`  - Transmisión: Cambio de Kit Completo`);
+          } else if (opt.id === "clutch") {
+            const clutchVal = generalSubData.clutch.cambio ? "Cambio de discos" : "Revisión";
+            parts.push(`  - Embrague: ${clutchVal}`);
           }
         });
       }
@@ -334,6 +346,8 @@ function NewMaintenanceForm() {
         }
       } else if (category === "Batería") {
         finalType = "Cambio de Batería: " + (selectedBrandOrType === "Otro" ? customBrand : selectedBrandOrType);
+      } else if (category === "Clutch") {
+        finalType = clutchChanged ? "Cambio de Discos de Embrague" : "Revisión de Embrague";
       } else if (category === "General") {
         const checkedLabels = GENERAL_CHECKLIST_OPTIONS
           .filter(opt => generalChecklist[opt.id as keyof typeof generalChecklist])
@@ -358,6 +372,9 @@ function NewMaintenanceForm() {
             }
             if (opt.id === "transmissionKit") {
               return "Cambio de Kit de Transmisión";
+            }
+            if (opt.id === "clutch") {
+              return generalSubData.clutch.cambio ? "Cambio de Discos de Embrague" : "Revisión de Embrague";
             }
             return opt.label;
           });
@@ -610,6 +627,22 @@ function NewMaintenanceForm() {
             notes: "Registrado automáticamente vía Service General."
           });
         }
+
+        // 7. Embrague / Clutch
+        if (generalChecklist.clutch) {
+          const clutchType = generalSubData.clutch.cambio ? "Cambio de Discos de Embrague" : "Revisión de Embrague";
+
+          await addMaintenanceRecord(user.uid, {
+            bikeId: profile.currentBikeId,
+            date,
+            mileage: recordMileage,
+            cost: 0,
+            category: "Clutch",
+            type: clutchType,
+            parentRecordId: parentRecordId,
+            notes: "Registrado automáticamente vía Service General."
+          });
+        }
       }
 
       const currentBike = await getBike(user.uid, profile.currentBikeId);
@@ -673,6 +706,7 @@ function NewMaintenanceForm() {
                 <option value="Cubiertas">Cubiertas (Neumáticos)</option>
                 <option value="Transmisión">Kit de Transmisión / Cadena</option>
                 <option value="Batería">Batería</option>
+                <option value="Clutch">Embrague (Clutch)</option>
                 <option value="Desgaste">Frenos / Desgaste</option>
                 <option value="Fluidos">Líquidos / Fluidos</option>
                 <option value="General">Mantenimiento General / Otros</option>
@@ -1140,6 +1174,20 @@ function NewMaintenanceForm() {
                                 )}
                               </div>
                             )}
+                            {/* 8. Discos de Embrague (Clutch) */}
+                            {opt.id === "clutch" && (
+                              <div className="flex gap-6 py-1">
+                                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-zinc-300">
+                                  <input 
+                                    type="checkbox"
+                                    checked={generalSubData.clutch.cambio}
+                                    onChange={e => setGeneralSubData(prev => ({ ...prev, clutch: { ...prev.clutch, cambio: e.target.checked } }))}
+                                    className="h-4 w-4 accent-primary rounded bg-zinc-900 border-zinc-800"
+                                  />
+                                  <span>¿Se cambió? (Discos de Embrague)</span>
+                                </label>
+                              </div>
+                            )}
 
                           </div>
                         )}
@@ -1320,6 +1368,23 @@ function NewMaintenanceForm() {
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
                   </div>
                   {batteryModel === "Otro" && <input type="text" value={customBatteryModel} onChange={e => setCustomBatteryModel(e.target.value)} className="w-full mt-2 rounded-lg border border-border bg-black/40 px-3 py-3 text-sm focus:border-primary" placeholder="Ej. YTX5L-BS" required />}
+                </div>
+              </div>
+            )}
+
+            {category === "Clutch" && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/30 bg-primary/5">
+                  <input 
+                    type="checkbox" 
+                    id="clutchChanged" 
+                    checked={clutchChanged} 
+                    onChange={e => setClutchChanged(e.target.checked)} 
+                    className="w-5 h-5 rounded border-zinc-600 bg-zinc-900 text-primary focus:ring-primary focus:ring-offset-background" 
+                  />
+                  <label htmlFor="clutchChanged" className="text-sm font-medium text-white cursor-pointer">
+                    ¿Se cambiaron los discos de embrague?
+                  </label>
                 </div>
               </div>
             )}

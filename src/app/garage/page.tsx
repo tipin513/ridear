@@ -165,6 +165,13 @@ export default function GaragePage() {
     if (clutchRemainingKm <= 1000) clutchAlertStatus = "danger";
     else if (clutchRemainingKm <= 3000) clutchAlertStatus = "warning";
     else clutchAlertStatus = "success";
+  } else if (currentBike) {
+    if (currentBike.mileage < 30000) {
+      clutchAlertStatus = "hide";
+    } else {
+      clutchRemainingKm = 30000 - currentBike.mileage;
+      clutchAlertStatus = "danger";
+    }
   }
 
   // Cable Adjustment Alert - Every 5,000 km
@@ -397,19 +404,25 @@ export default function GaragePage() {
                 </div>
               </div>
 
-              <div className={`rounded-xl border p-4 flex gap-3 ${alertColors[clutchAlertStatus as keyof typeof alertColors]} mt-4`}>
-                <ClutchAlertIcon className="h-6 w-6 shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium">Discos de Embrague (Clutch)</h3>
-                  {clutchAlertStatus === "unknown" ? (
-                    <p className="text-xs mt-1 opacity-80">Registrá un cambio de discos de embrague para activar alertas preventivas (30.000 km).</p>
-                  ) : clutchAlertStatus === "danger" && clutchRemainingKm < 0 ? (
-                    <p className="text-xs mt-1 opacity-80">¡Revisión urgente! Te pasaste por {Math.abs(clutchRemainingKm)} km del cambio de discos recomendado.</p>
-                  ) : (
-                    <p className="text-xs mt-1 opacity-80">Próxima revisión preventiva de discos de embrague en <strong>{clutchRemainingKm} km</strong>.</p>
-                  )}
+              {clutchAlertStatus !== "hide" && (
+                <div className={`rounded-xl border p-4 flex gap-3 ${alertColors[clutchAlertStatus as keyof typeof alertColors]} mt-4`}>
+                  <ClutchAlertIcon className="h-6 w-6 shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium">Discos de Embrague (Clutch)</h3>
+                    {clutchAlertStatus === "unknown" ? (
+                      <p className="text-xs mt-1 opacity-80">Registrá un cambio de discos de embrague para activar alertas preventivas (30.000 km).</p>
+                    ) : clutchAlertStatus === "danger" && clutchRemainingKm < 0 ? (
+                      <p className="text-xs mt-1 opacity-80">
+                        {latestClutchService 
+                          ? `¡Revisión urgente! Te pasaste por ${Math.abs(clutchRemainingKm)} km del cambio de discos recomendado.`
+                          : `¡Revisión recomendada! Tu moto superó los 30.000 km (${currentBike?.mileage.toLocaleString()} km) y no registraste un cambio de discos de embrague.`}
+                      </p>
+                    ) : (
+                      <p className="text-xs mt-1 opacity-80">Próxima revisión preventiva de discos de embrague en <strong>{clutchRemainingKm} km</strong>.</p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
 
               

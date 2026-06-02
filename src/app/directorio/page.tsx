@@ -251,7 +251,6 @@ export default function DirectorioPage() {
                               <p className="font-bold text-zinc-200 group-hover/item:text-primary transition-colors">{manual.model}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">AÑO {manual.year}</span>
-                                <span className="text-[9px] text-zinc-500">Por: <span className="text-zinc-400">{manual.sharedBy}</span></span>
                               </div>
                             </div>
                             <a 

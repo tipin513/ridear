@@ -10,10 +10,10 @@ import {
   subscribeToGears, subscribeToPublicGears, deleteGear, updateGear, Gear
 } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
-import { Plus, MapPin, Phone, Trash2, Globe, Lock, Search, Wrench, Truck, Store as StoreIcon, Tag, Shirt } from "lucide-react";
+import { Plus, MapPin, Phone, Trash2, Globe, Lock, Search, Wrench, Truck, Store as StoreIcon, Tag, Shirt, BookOpen, FileText } from "lucide-react";
 import Link from "next/link";
 
-type ResourceType = "talleres" | "gruas" | "tiendas" | "indumentaria";
+type ResourceType = "talleres" | "gruas" | "tiendas" | "indumentaria" | "manuales";
 type TabType = "mis-guardados" | "comunidad";
 
 export default function DirectorioPage() {
@@ -37,6 +37,22 @@ export default function DirectorioPage() {
   
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedBrand, setExpandedBrand] = useState<string | null>(null);
+
+  const MOTORCYCLE_BRANDS = [
+    "Honda", "Motomel", "Corven", "Zanella", "Gilera", "Bajaj", "Yamaha", 
+    "Mondial", "Keller", "Guerrero", "Benelli", "KTM", "Royal Enfield", 
+    "Suzuki", "Kawasaki", "TVS", "CFMoto", "Voge", "Husqvarna", "BMW", 
+    "Ducati", "Triumph", "Harley-Davidson"
+  ].sort();
+
+  const MOCK_SHARED_MANUALS = [
+    { id: '1', brand: 'Honda', model: 'CB300F Twister', year: '2023', url: '#', sharedBy: 'Juan Perez' },
+    { id: '2', brand: 'Yamaha', model: 'MT-03', year: '2021', url: '#', sharedBy: 'Carlos M.' },
+    { id: '3', brand: 'Honda', model: 'Tornado 250', year: '2019', url: '#', sharedBy: 'Matias R.' },
+    { id: '4', brand: 'Benelli', model: 'TRK 502', year: '2022', url: '#', sharedBy: 'Diego A.' },
+    { id: '5', brand: 'Royal Enfield', model: 'Interceptor 650', year: '2023', url: '#', sharedBy: 'Luis G.' },
+  ];
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -148,23 +164,31 @@ export default function DirectorioPage() {
           >
             <Shirt size={16} /> Indumentaria
           </button>
+          <button 
+            onClick={() => { setResourceType("manuales"); setSearchQuery(""); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors text-sm font-semibold border ${resourceType === "manuales" ? "bg-primary/10 border-primary text-primary" : "bg-card border-border text-zinc-400"}`}
+          >
+            <BookOpen size={16} /> Manuales
+          </button>
         </div>
 
         {/* Segmented Control */}
-        <div className="flex p-1 bg-zinc-900/80 rounded-lg">
-          <button 
-            onClick={() => { setActiveTab("mis-guardados"); setSearchQuery(""); }}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "mis-guardados" ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
-          >
-            Mis Guardados
-          </button>
-          <button 
-            onClick={() => { setActiveTab("comunidad"); setSearchQuery(""); }}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "comunidad" ? "bg-primary text-primary-foreground shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
-          >
-            Comunidad
-          </button>
-        </div>
+        {resourceType !== "manuales" && (
+          <div className="flex p-1 bg-zinc-900/80 rounded-lg">
+            <button 
+              onClick={() => { setActiveTab("mis-guardados"); setSearchQuery(""); }}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "mis-guardados" ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
+            >
+              Mis Guardados
+            </button>
+            <button 
+              onClick={() => { setActiveTab("comunidad"); setSearchQuery(""); }}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${activeTab === "comunidad" ? "bg-primary text-primary-foreground shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
+            >
+              Comunidad
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="px-4 mt-4 flex-1">
@@ -173,14 +197,68 @@ export default function DirectorioPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input 
             type="text" 
-            placeholder={`Buscar en ${resourceType === "talleres" ? "talleres" : resourceType === "gruas" ? "asistencias" : resourceType === "tiendas" ? "tiendas" : "indumentaria"}...`}
+            placeholder={`Buscar en ${resourceType === "talleres" ? "talleres" : resourceType === "gruas" ? "asistencias" : resourceType === "tiendas" ? "tiendas" : resourceType === "indumentaria" ? "indumentaria" : "manuales"}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
           />
         </div>
 
-        {filteredList.length === 0 ? (
+        {resourceType === "manuales" ? (
+          <div className="space-y-3 mt-4 pb-10">
+            {MOTORCYCLE_BRANDS.filter(b => b.toLowerCase().includes(searchQuery.toLowerCase())).map(brand => {
+              const brandManuals = MOCK_SHARED_MANUALS.filter(m => m.brand === brand);
+              const count = brandManuals.length;
+              const isExpanded = expandedBrand === brand;
+
+              return (
+                <div key={brand} className="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 overflow-hidden transition-all duration-300">
+                  <button 
+                    onClick={() => setExpandedBrand(isExpanded ? null : brand)}
+                    className="w-full flex items-center justify-between p-4 bg-zinc-900/40 hover:bg-zinc-800/50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg transition-colors ${count > 0 ? 'bg-primary/20 text-primary' : 'bg-zinc-800/80 text-zinc-600'}`}>
+                        <BookOpen size={18} />
+                      </div>
+                      <span className="font-bold text-foreground text-lg group-hover:text-primary transition-colors">{brand}</span>
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${count > 0 ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(255,255,255,0.2)]' : 'bg-zinc-800/60 text-zinc-500 border border-zinc-700/50'}`}>
+                      {count} {count === 1 ? 'manual' : 'manuales'}
+                    </span>
+                  </button>
+                  
+                  {isExpanded && (
+                    <div className="p-4 border-t border-zinc-800/50 bg-black/20 space-y-3">
+                      {count === 0 ? (
+                        <div className="text-center py-8 bg-zinc-900/30 rounded-xl border border-dashed border-zinc-800/50">
+                          <BookOpen className="w-10 h-10 mx-auto mb-3 text-zinc-700 opacity-50" />
+                          <p className="text-zinc-400 font-medium">Aún no hay manuales para {brand}</p>
+                          <p className="text-[11px] text-zinc-500 mt-1 max-w-[200px] mx-auto">Sé el primero en aportar a la comunidad compartiéndolo desde tu Garage.</p>
+                        </div>
+                      ) : (
+                        brandManuals.map(manual => (
+                          <div key={manual.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 hover:border-primary/30 transition-all hover:shadow-[0_4px_20px_rgba(255,255,255,0.03)] group/item cursor-pointer">
+                            <div>
+                              <p className="font-bold text-zinc-200 group-hover/item:text-primary transition-colors">{manual.model}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">AÑO {manual.year}</span>
+                                <span className="text-[9px] text-zinc-500">Por: <span className="text-zinc-400">{manual.sharedBy}</span></span>
+                              </div>
+                            </div>
+                            <a href={manual.url} target="_blank" className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-black border border-primary/20 hover:border-primary transition-all shadow-sm">
+                              <FileText size={16} />
+                            </a>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : filteredList.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/30 p-8 text-center mt-6">
             <div className="rounded-full bg-zinc-800 p-4 mb-4 text-zinc-400">
               {resourceType === "talleres" ? <Wrench size={32} /> : resourceType === "gruas" ? <Truck size={32} /> : resourceType === "tiendas" ? <StoreIcon size={32} /> : <Shirt size={32} />}
@@ -361,7 +439,7 @@ export default function DirectorioPage() {
       </div>
 
       {/* Floating Action Button */}
-      {activeTab === "mis-guardados" && (
+      {activeTab === "mis-guardados" && resourceType !== "manuales" && (
         <Link 
           href={`/directorio/${resourceType}/nuevo`}
           className="fixed bottom-24 right-4 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-transform active:scale-90 z-20"

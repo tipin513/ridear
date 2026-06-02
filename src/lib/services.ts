@@ -39,6 +39,7 @@ export interface Bike {
   chainLubeInterval?: number; // E.g. 500km
   frontTirePressure?: number;
   rearTirePressure?: number;
+  manualURL?: string;
 }
 
 export type MaintenanceCategory = "Aceite" | "Bujías" | "Cubiertas" | "Transmisión" | "Fluidos" | "Desgaste" | "General" | "Batería" | "Clutch";
@@ -208,6 +209,13 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
 export const uploadUserImage = async (uid: string, file: File, type: 'avatar' | 'banner'): Promise<string> => {
   const fileExtension = file.name.split('.').pop();
   const storageRef = ref(storage, `users/${uid}/${type}_${Date.now()}.${fileExtension}`);
+  await uploadBytes(storageRef, file);
+  return await getDownloadURL(storageRef);
+};
+
+export const uploadBikeManual = async (uid: string, bikeId: string, file: File): Promise<string> => {
+  const fileExtension = file.name.split('.').pop();
+  const storageRef = ref(storage, `users/${uid}/bikes/${bikeId}/manual_${Date.now()}.${fileExtension}`);
   await uploadBytes(storageRef, file);
   return await getDownloadURL(storageRef);
 };

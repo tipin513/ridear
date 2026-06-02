@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getUserProfile, UserProfile, uploadUserImage, getBike, subscribeToBikes, updateBike, Bike, deleteBike, updateUserProfile } from "@/lib/services";
-import { ChevronLeft, Camera, Loader2, Trash2 } from "lucide-react";
+import { getUserProfile, UserProfile, uploadUserImage, getBike, subscribeToBikes, updateBike, Bike, deleteBike, updateUserProfile, uploadBikeManual } from "@/lib/services";
+import { ChevronLeft, Camera, Loader2, Trash2, FileText } from "lucide-react";
 import Link from "next/link";
 
 export default function EditGaragePage() {
@@ -27,6 +27,9 @@ export default function EditGaragePage() {
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [bannerPositionY, setBannerPositionY] = useState(50);
+
+  const [manualFile, setManualFile] = useState<File | null>(null);
+  const [manualURL, setManualURL] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -55,6 +58,7 @@ export default function EditGaragePage() {
               setRearTirePressure(activeBike.rearTirePressure?.toString() || "");
               setBannerPreview(activeBike.bannerURL || null);
               setBannerPositionY(activeBike.bannerPositionY !== undefined ? activeBike.bannerPositionY : 50);
+              setManualURL(activeBike.manualURL || "");
               
               if (data.currentBikeId !== activeBike.id) {
                 await updateUserProfile(user.uid, { currentBikeId: activeBike.id });
@@ -103,6 +107,11 @@ export default function EditGaragePage() {
       }
 
       if (currentBike) {
+        let finalManualURL = manualURL;
+        if (manualFile) {
+          finalManualURL = await uploadBikeManual(user.uid, currentBike.id, manualFile);
+        }
+
         await updateBike(user.uid, currentBike.id, {
           bannerURL: finalBannerURL,
           bannerPositionY,
@@ -114,7 +123,8 @@ export default function EditGaragePage() {
             oil: parseInt(oilInterval) || 5000
           },
           frontTirePressure: parseInt(frontTirePressure) || undefined,
-          rearTirePressure: parseInt(rearTirePressure) || undefined
+          rearTirePressure: parseInt(rearTirePressure) || undefined,
+          manualURL: finalManualURL
         });
       }
 
@@ -323,6 +333,48 @@ export default function EditGaragePage() {
               placeholder="Ej. 3000 o 5000"
               required
             />
+          </div>
+        </div>
+
+        {/* Manual PDF Upload */}
+        <div className="space-y-4 pt-4 border-t border-border">
+          <h2 className="text-lg font-semibold text-primary">Manual de Usuario</h2>
+          <p className="text-[10px] text-zinc-500">Subí el manual de tu moto en formato PDF para tenerlo siempre a mano en la Ficha Técnica.</p>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <div className="w-full flex items-center justify-between rounded-lg border border-border bg-card px-3 py-3 text-sm text-foreground focus:border-primary">
+                <span className="text-xs text-zinc-400 truncate max-w-[200px]">
+                  {manualFile ? manualFile.name : (manualURL ? "manual_usuario.pdf" : "Ningún archivo seleccionado")}
+                </span>
+                <span className="text-xs font-bold text-primary cursor-pointer hover:underline">
+                  Seleccionar
+                </span>
+              </div>
+              <input 
+                type="file" 
+                accept="application/pdf" 
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setManualFile(e.target.files[0]);
+                  }
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </div>
+            
+            {manualURL && (
+              <button
+                type="button"
+                onClick={() => {
+                  setManualURL("");
+                  setManualFile(null);
+                }}
+                className="rounded-lg bg-red-500/10 hover:bg-red-500/20 px-3.5 py-3 text-xs font-bold text-red-500 transition-colors"
+              >
+                Quitar
+              </button>
+            )}
           </div>
         </div>
 

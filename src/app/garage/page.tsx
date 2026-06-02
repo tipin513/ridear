@@ -3,10 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { initializeUserProfile, UserProfile, subscribeToUserProfile, subscribeToMaintenanceRecords, MaintenanceRecord, subscribeToDigitalDocuments, DigitalDocument, uploadUserImage, updateUserProfile, migrateUserToMultiBike, subscribeToBikes, Bike } from "@/lib/services";
+import { initializeUserProfile, UserProfile, subscribeToUserProfile, subscribeToMaintenanceRecords, MaintenanceRecord, subscribeToDigitalDocuments, DigitalDocument, uploadUserImage, updateUserProfile, migrateUserToMultiBike, subscribeToBikes, Bike, updateBike } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
 import OnboardingTour from "@/components/OnboardingTour";
-import { Camera, Settings, ShieldAlert, ShieldCheck, AlertTriangle, Bike as BikeIcon, LogOut, FileWarning, ChevronDown, Plus, Wrench } from "lucide-react";
+import { Camera, Settings, ShieldAlert, ShieldCheck, AlertTriangle, Bike as BikeIcon, LogOut, FileWarning, ChevronDown, Plus, Wrench, FileText, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 export default function GaragePage() {
@@ -357,6 +357,64 @@ export default function GaragePage() {
                           <p className="font-medium text-foreground">{currentBike.rearTirePressure} PSI</p>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {currentBike?.manualURL ? (
+                    <div className="col-span-2 pt-3 border-t border-white/5 mt-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-red-500/10 p-2 rounded-lg text-red-500">
+                          <FileText size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-zinc-300 font-semibold">Manual de Usuario</p>
+                          <p className="text-[10px] text-zinc-500">PDF listo para abrir</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a 
+                          href={currentBike.manualURL} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-white/10 px-3 py-1.5 text-xs font-bold text-white transition-colors"
+                        >
+                          Abrir PDF
+                        </a>
+                        <button
+                          onClick={async () => {
+                            if (confirm("¿Estás seguro de que querés eliminar el manual de usuario?")) {
+                              try {
+                                await updateBike(user.uid, currentBike.id, { manualURL: "" });
+                              } catch (err) {
+                                console.error("Error al eliminar manual:", err);
+                                alert("No se pudo eliminar el manual.");
+                              }
+                            }
+                          }}
+                          className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/10 transition-colors"
+                          title="Eliminar manual"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="col-span-2 pt-3 border-t border-white/5 mt-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-zinc-800/40 p-2 rounded-lg text-zinc-500">
+                          <FileText size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-zinc-500 font-medium">Manual de Usuario</p>
+                          <p className="text-[10px] text-zinc-600">Sin manual cargado</p>
+                        </div>
+                      </div>
+                      <Link 
+                        href="/garage/edit" 
+                        className="rounded-lg bg-zinc-900/40 border border-white/5 hover:border-white/15 px-3 py-1.5 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+                      >
+                        Cargar PDF
+                      </Link>
                     </div>
                   )}
                 </div>

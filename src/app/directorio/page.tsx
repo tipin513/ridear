@@ -49,13 +49,7 @@ export default function DirectorioPage() {
     "Ducati", "Triumph", "Harley-Davidson"
   ].sort();
 
-  const MOCK_SHARED_MANUALS = [
-    { id: '1', brand: 'Honda', model: 'CB300F Twister', year: '2023', url: '#', sharedBy: 'Juan Perez' },
-    { id: '2', brand: 'Yamaha', model: 'MT-03', year: '2021', url: '#', sharedBy: 'Carlos M.' },
-    { id: '3', brand: 'Honda', model: 'Tornado 250', year: '2019', url: '#', sharedBy: 'Matias R.' },
-    { id: '4', brand: 'Benelli', model: 'TRK 502', year: '2022', url: '#', sharedBy: 'Diego A.' },
-    { id: '5', brand: 'Royal Enfield', model: 'Interceptor 650', year: '2023', url: '#', sharedBy: 'Luis G.' },
-  ];
+
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -211,20 +205,17 @@ export default function DirectorioPage() {
         {resourceType === "manuales" ? (
           <div className="space-y-3 mt-4 pb-10">
             {MOTORCYCLE_BRANDS.filter(b => b.toLowerCase().includes(searchQuery.toLowerCase())).map(brand => {
-              const combinedManuals = [
-                ...MOCK_SHARED_MANUALS,
-                ...myBikes
-                  .filter(bike => bike.manualURL)
-                  .map(bike => ({
-                    id: bike.id || Math.random().toString(),
-                    brand: bike.brand,
-                    model: bike.model,
-                    year: bike.year,
-                    url: bike.manualURL as string,
-                    sharedBy: user?.displayName || "Tú"
-                  }))
-              ];
-              const brandManuals = combinedManuals.filter(m => m.brand === brand);
+              const combinedManuals = myBikes
+                .filter(bike => bike.manualURL)
+                .map(bike => ({
+                  id: bike.id || Math.random().toString(),
+                  brand: bike.brand,
+                  model: bike.model,
+                  year: bike.year,
+                  url: bike.manualURL as string,
+                  sharedBy: user?.displayName || "Tú"
+                }));
+              const brandManuals = combinedManuals.filter(m => (m.brand || "").toLowerCase().trim() === brand.toLowerCase().trim());
               const count = brandManuals.length;
               const isExpanded = expandedBrand === brand;
 
@@ -263,7 +254,11 @@ export default function DirectorioPage() {
                                 <span className="text-[9px] text-zinc-500">Por: <span className="text-zinc-400">{manual.sharedBy}</span></span>
                               </div>
                             </div>
-                            <a href={manual.url} target="_blank" className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-black border border-primary/20 hover:border-primary transition-all shadow-sm">
+                            <a 
+                              href={manual.url} 
+                              target="_blank" 
+                              className="p-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-black border border-primary/20 hover:border-primary transition-all shadow-sm"
+                            >
                               <FileText size={16} />
                             </a>
                           </div>

@@ -230,6 +230,26 @@ export const addBike = async (uid: string, bike: Omit<Bike, 'id'>) => {
 export const updateBike = async (uid: string, bikeId: string, data: Partial<Bike>) => {
   const bikeRef = doc(db, "users", uid, "bikes", bikeId);
   await updateDoc(bikeRef, data);
+
+  if ('manualURL' in data) {
+    const docSnap = await getDoc(bikeRef);
+    const publicRef = doc(db, "publicManuals", bikeId);
+    if (docSnap.exists()) {
+      const currentBike = docSnap.data() as Bike;
+      if (currentBike.manualURL) {
+        await setDoc(publicRef, {
+          id: bikeId,
+          brand: currentBike.brand,
+          model: currentBike.model,
+          year: currentBike.year,
+          url: currentBike.manualURL,
+          ownerUid: uid
+        });
+      } else {
+        try { await deleteDoc(publicRef); } catch(e) {}
+      }
+    }
+  }
 };
 
 export const deleteBike = async (uid: string, bikeId: string) => {
@@ -239,6 +259,10 @@ export const deleteBike = async (uid: string, bikeId: string) => {
   // 1. Marcar la moto para borrar
   const bikeRef = doc(db, "users", uid, "bikes", bikeId);
   batch.delete(bikeRef);
+  
+  const publicManualRef = doc(db, "publicManuals", bikeId);
+  batch.delete(publicManualRef);
+  
   console.log(`[deleteBike] Añadido delete de moto a la tanda`);
 
   // 2. Borrar mantenimientos asociados
@@ -395,11 +419,32 @@ export const subscribeToDigitalDocuments = (uid: string, callback: (docs: Digita
   const docsRef = collection(db, "users", uid, "documents");
   const q = query(docsRef, orderBy("createdAt", "desc"));
   return onSnapshot(q, (querySnapshot) => {
-    const docs = querySnapshot.docs.map(doc => ({
+    const docsList = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as DigitalDocument[];
-    callback(docs);
+    callback(docsList);
+  });
+};
+
+export interface PublicManual {
+  id: string;
+  brand: string;
+  model: string;
+  year: string;
+  url: string;
+  ownerUid: string;
+}
+
+export const subscribeToPublicManuals = (callback: (manuals: PublicManual[]) => void) => {
+  const publicRef = collection(db, "publicManuals");
+  const q = query(publicRef);
+  return onSnapshot(q, (querySnapshot) => {
+    const manuals = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as PublicManual[];
+    callback(manuals);
   });
 };
 

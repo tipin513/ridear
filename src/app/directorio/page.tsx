@@ -7,7 +7,8 @@ import {
   subscribeToWorkshops, subscribeToPublicWorkshops, deleteWorkshop, updateWorkshop, Workshop,
   subscribeToTowing, subscribeToPublicTowing, deleteTowing, updateTowing, Towing,
   subscribeToStores, subscribeToPublicStores, deleteStore, updateStore, Store,
-  subscribeToGears, subscribeToPublicGears, deleteGear, updateGear, Gear
+  subscribeToGears, subscribeToPublicGears, deleteGear, updateGear, Gear,
+  subscribeToBikes, Bike
 } from "@/lib/services";
 import BottomNav from "@/components/BottomNav";
 import { Plus, MapPin, Phone, Trash2, Globe, Lock, Search, Wrench, Truck, Store as StoreIcon, Tag, Shirt, BookOpen, FileText } from "lucide-react";
@@ -34,6 +35,8 @@ export default function DirectorioPage() {
   
   const [myGears, setMyGears] = useState<Gear[]>([]);
   const [publicGears, setPublicGears] = useState<Gear[]>([]);
+  
+  const [myBikes, setMyBikes] = useState<Bike[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,6 +77,7 @@ export default function DirectorioPage() {
       
       unsubscribers.push(subscribeToGears(user.uid, (data) => setMyGears(data)));
       unsubscribers.push(subscribeToPublicGears((data) => setPublicGears(data)));
+      unsubscribers.push(subscribeToBikes(user.uid, (data) => setMyBikes(data)));
       
       setLoading(false);
     }
@@ -207,7 +211,20 @@ export default function DirectorioPage() {
         {resourceType === "manuales" ? (
           <div className="space-y-3 mt-4 pb-10">
             {MOTORCYCLE_BRANDS.filter(b => b.toLowerCase().includes(searchQuery.toLowerCase())).map(brand => {
-              const brandManuals = MOCK_SHARED_MANUALS.filter(m => m.brand === brand);
+              const combinedManuals = [
+                ...MOCK_SHARED_MANUALS,
+                ...myBikes
+                  .filter(bike => bike.manualURL)
+                  .map(bike => ({
+                    id: bike.id || Math.random().toString(),
+                    brand: bike.brand,
+                    model: bike.model,
+                    year: bike.year,
+                    url: bike.manualURL as string,
+                    sharedBy: user?.displayName || "Tú"
+                  }))
+              ];
+              const brandManuals = combinedManuals.filter(m => m.brand === brand);
               const count = brandManuals.length;
               const isExpanded = expandedBrand === brand;
 

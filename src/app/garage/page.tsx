@@ -104,14 +104,15 @@ export default function GaragePage() {
   // Phase 7: Derived state for currently selected bike
   const currentBike = bikes.find(b => b.id === profile.currentBikeId) || bikes[0];
   const currentBikeRecords = allRecords.filter(r => r.bikeId === currentBike?.id);
-  const latestOilService = currentBikeRecords.find(r => r.category === "Fluidos" || r.category === "Aceite");
+  const latestOilService = currentBikeRecords.find(r => r.category === "Aceite");
 
   // Smart Alerts Logic (per bike) - Oil
   let alertStatus = "unknown";
   let remainingKm = 0;
+  let nextServiceAt = 0;
   
   if (latestOilService && currentBike && currentBike.serviceIntervals) {
-    const nextServiceAt = latestOilService.mileage + currentBike.serviceIntervals.oil;
+    nextServiceAt = latestOilService.mileage + currentBike.serviceIntervals.oil;
     remainingKm = nextServiceAt - currentBike.mileage;
     
     if (remainingKm <= 500) alertStatus = "danger";
@@ -122,10 +123,11 @@ export default function GaragePage() {
   // Smart Alerts Logic (per bike) - Chain Lube
   let chainAlertStatus = "unknown";
   let chainRemainingKm = 0;
+  let nextLubeAt = 0;
   const CHAIN_LUBE_INTERVAL = currentBike?.chainLubeInterval || 500;
 
   if (currentBike?.lastChainLubeMileage && currentBike) {
-    const nextLubeAt = currentBike.lastChainLubeMileage + CHAIN_LUBE_INTERVAL;
+    nextLubeAt = currentBike.lastChainLubeMileage + CHAIN_LUBE_INTERVAL;
     chainRemainingKm = nextLubeAt - currentBike.mileage;
     
     if (chainRemainingKm <= 50) chainAlertStatus = "danger";
@@ -154,12 +156,13 @@ export default function GaragePage() {
   // Smart Alerts Logic (per bike) - Clutch Discs
   let clutchAlertStatus = "unknown";
   let clutchRemainingKm = 0;
+  let nextClutchServiceAt = 0;
   const latestClutchService = currentBikeRecords
     .filter(r => r.category === "Clutch" && (r.type || "").toLowerCase().includes("cambio"))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   
   if (latestClutchService && currentBike) {
-    const nextClutchServiceAt = latestClutchService.mileage + 30000;
+    nextClutchServiceAt = latestClutchService.mileage + 30000;
     clutchRemainingKm = nextClutchServiceAt - currentBike.mileage;
     
     if (clutchRemainingKm <= 1000) clutchAlertStatus = "danger";
@@ -169,7 +172,8 @@ export default function GaragePage() {
     if (currentBike.mileage < 30000) {
       clutchAlertStatus = "hide";
     } else {
-      clutchRemainingKm = 30000 - currentBike.mileage;
+      nextClutchServiceAt = 30000;
+      clutchRemainingKm = nextClutchServiceAt - currentBike.mileage;
       clutchAlertStatus = "danger";
     }
   }
@@ -427,9 +431,9 @@ export default function GaragePage() {
                   {alertStatus === "unknown" ? (
                     <p className="text-xs mt-1 opacity-80">Registrá un cambio de Aceite en la bitácora para activar alertas.</p>
                   ) : alertStatus === "danger" && remainingKm < 0 ? (
-                    <p className="text-xs mt-1 opacity-80">¡Te pasaste del service por {Math.abs(remainingKm)} km! Cambialo urgente.</p>
+                    <p className="text-xs mt-1 opacity-80">¡Te pasaste del service (era a los {nextServiceAt} km) por {Math.abs(remainingKm)} km! Cambialo urgente.</p>
                   ) : (
-                    <p className="text-xs mt-1 opacity-80">Te quedan aproximadamente <strong>{remainingKm} km</strong> para el próximo cambio.</p>
+                    <p className="text-xs mt-1 opacity-80">Próximo a los <strong>{nextServiceAt} km</strong>. Te quedan {remainingKm} km.</p>
                   )}
                 </div>
               </div>
@@ -441,9 +445,9 @@ export default function GaragePage() {
                   {chainAlertStatus === "unknown" ? (
                     <p className="text-xs mt-1 opacity-80">Registrá una limpieza de cadena o cambio de kit para iniciar el contador de 500 km.</p>
                   ) : chainAlertStatus === "danger" && chainRemainingKm < 0 ? (
-                    <p className="text-xs mt-1 opacity-80">¡Cadena reseca! Te pasaste por {Math.abs(chainRemainingKm)} km. Lubricala para evitar desgaste.</p>
+                    <p className="text-xs mt-1 opacity-80">¡Cadena reseca! Te pasaste (era a los {nextLubeAt} km) por {Math.abs(chainRemainingKm)} km. Lubricala para evitar desgaste.</p>
                   ) : (
-                    <p className="text-xs mt-1 opacity-80">Próxima limpieza y lubricación en <strong>{chainRemainingKm} km</strong>.</p>
+                    <p className="text-xs mt-1 opacity-80">Próxima a los <strong>{nextLubeAt} km</strong>. Faltan {chainRemainingKm} km.</p>
                   )}
                 </div>
               </div>
@@ -472,11 +476,11 @@ export default function GaragePage() {
                     ) : clutchAlertStatus === "danger" && clutchRemainingKm < 0 ? (
                       <p className="text-xs mt-1 opacity-80">
                         {latestClutchService 
-                          ? `¡Revisión urgente! Te pasaste por ${Math.abs(clutchRemainingKm)} km del cambio de discos recomendado.`
-                          : `¡Revisión recomendada! Tu moto superó los 30.000 km (${currentBike?.mileage.toLocaleString()} km) y no registraste un cambio de discos de embrague.`}
+                          ? `¡Revisión urgente! Te pasaste (era a los ${nextClutchServiceAt} km) por ${Math.abs(clutchRemainingKm)} km del cambio recomendado.`
+                          : `¡Revisión recomendada! Tu moto superó los 30.000 km (${currentBike?.mileage.toLocaleString()} km) y no registraste un cambio de discos.`}
                       </p>
                     ) : (
-                      <p className="text-xs mt-1 opacity-80">Próxima revisión preventiva de discos de embrague en <strong>{clutchRemainingKm} km</strong>.</p>
+                      <p className="text-xs mt-1 opacity-80">Próxima revisión preventiva a los <strong>{nextClutchServiceAt} km</strong>. Faltan {clutchRemainingKm} km.</p>
                     )}
                   </div>
                 </div>
